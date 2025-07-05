@@ -1,9 +1,16 @@
 import { Transaction } from '@meshsdk/core';
+import { Lucid, Blockfrost } from 'lucid-cardano';
 import CryptoJS from 'crypto-js';
+
+/* eslint-env es2020 */
+/* global BigInt */
 
 class BlockchainService {
   constructor() {
     this.defaultNetwork = 'preprod';
+    
+    // Clean up any legacy demo data on initialization
+    this.cleanupDemoData();
   }
 
   // Get current configuration from global state or use defaults
@@ -64,18 +71,73 @@ class BlockchainService {
       console.log('Wallet API:', walletApi);
       
       if (!walletApi) {
-        throw new Error('Wallet API not provided');
+        throw new Error('Wallet API not provided. Please connect your wallet.');
       }
 
-      // Get wallet address and UTXOs
-      const changeAddress = await walletApi.getChangeAddress();
-      const utxos = await walletApi.getUtxos();
+      const config = this.getConfig();
       
-      console.log('Using address:', changeAddress);
-      console.log('Available UTXOs:', utxos.length);
+      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
+        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
+      }
 
+      // Validate API key first
+      const isValidKey = await this.validateApiKey();
+      if (!isValidKey) {
+        throw new Error('Invalid Blockfrost API key. Please check your configuration.');
+      }
+
+      // Initialize Lucid with Blockfrost
+      const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
+                          config.network === 'preview' ? 'Preview' : 'Preprod';
+      
+      console.log('Initializing Lucid with network:', lucidNetwork);
+      console.log('Blockfrost config:', { baseUrl: config.baseUrl, network: config.network });
+      
+      const lucid = await Lucid.new(
+        new Blockfrost(config.baseUrl, config.apiKey),
+        lucidNetwork
+      );
+
+      console.log('Lucid initialized successfully');
+
+      // Create a wallet adapter for Lucid
+      const walletAdapter = {
+        getUtxos: () => walletApi.getUtxos(),
+        getUsedAddresses: () => walletApi.getUsedAddresses(),
+        getUnusedAddresses: () => walletApi.getUnusedAddresses(),
+        getChangeAddress: () => walletApi.getChangeAddress(),
+        getRewardAddresses: () => walletApi.getRewardAddresses(),
+        signTx: (tx) => walletApi.signTx(tx, true),
+        submitTx: (tx) => walletApi.submitTx(tx),
+      };
+
+      // Select wallet
+      lucid.selectWallet(walletAdapter);
+
+      // Get wallet address - try to get bech32 format
+      let address;
+      try {
+        address = await this.getBech32Address(walletApi);
+        console.log('Using bech32 address:', address);
+      } catch (bech32Error) {
+        console.warn('Could not get bech32 address, using change address:', bech32Error);
+        address = await walletApi.getChangeAddress();
+        console.log('Using change address:', address);
+      }
+
+      // Validate address format
+      if (!address) {
+        throw new Error('Could not get wallet address. Please ensure your wallet is properly connected.');
+      }
+
+      if (typeof address !== 'string' || address.length < 10) {
+        throw new Error(`Invalid address format received from wallet: ${address}`);
+      }
+
+      // Check wallet balance
+      const utxos = await walletApi.getUtxos();
       if (!utxos || utxos.length === 0) {
-        throw new Error('No UTXOs available. Make sure your wallet has some ADA.');
+        throw new Error('No UTXOs found in wallet. Please ensure your wallet has some test ADA.');
       }
 
       // Create metadata
@@ -84,102 +146,53 @@ class BlockchainService {
           certificate_hash: fileHash,
           file_name: fileName,
           issued_at: new Date().toISOString(),
-          issuer: 'Certificate Verifier App',
-          version: '1.0'
+          issuer: 'CertiFy - Certificate Verifier App',
+          version: '1.0',
+          network: config.network
         }
       };
 
-      // Build transaction using wallet's built-in methods
       console.log('Building transaction with metadata:', metadata);
-      
-      // Use the wallet's transaction building capabilities
-      const txBuilder = await this.buildTransactionWithMetadata(
-        walletApi, 
-        changeAddress, 
-        utxos, 
-        metadata
-      );
 
-      return txBuilder;
-    } catch (error) {
-      console.error('Error issuing certificate:', error);
-      throw new Error(`Failed to issue certificate: ${error.message}`);
-    }
-  }
+      // Build transaction with Lucid - use string instead of BigInt to avoid length issues
+      const tx = await lucid
+        .newTx()
+        .payToAddress(address, { lovelace: "2000000" }) // Send 2 ADA to self (string format)
+        .attachMetadata(674, metadata[674])
+        .complete();
 
-  /**
-   * Build a transaction with metadata using the wallet API
-   * @param {Object} walletApi - Wallet API instance
-   * @param {string} address - Wallet address
-   * @param {Array} utxos - Available UTXOs
-   * @param {Object} metadata - Transaction metadata
-   * @returns {Promise<string>} - Transaction hash
-   */
-  async buildTransactionWithMetadata(walletApi, address, utxos, metadata) {
-    try {
-      // For now, let's try a simpler approach using the wallet's native transaction building
-      // This varies by wallet, but most support building transactions with metadata
-      
-      // Create a simple transaction that sends 2 ADA to self with metadata
-      const outputs = [{
-        address: address,
-        amount: {
-          lovelace: '2000000' // 2 ADA in lovelace
-        }
-      }];
+      console.log('Transaction built, signing...');
 
-      // Try to build transaction with metadata
-      // Note: This is a simplified approach - in production you'd want more robust transaction building
-      const txHash = await this.submitSimpleTransaction(walletApi, outputs, metadata);
+      // Sign transaction
+      const signedTx = await tx.sign().complete();
       
+      console.log('Transaction signed, submitting...');
+
+      // Submit transaction
+      const txHash = await signedTx.submit();
+      
+      console.log('Transaction submitted with hash:', txHash);
+
       return txHash;
     } catch (error) {
-      console.error('Error building transaction:', error);
-      throw new Error(`Transaction building failed: ${error.message}`);
+      console.error('Error issuing certificate:', error);
+      
+      // Provide specific error messages for common issues
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      
+      if (errorMessage.includes('insufficient')) {
+        throw new Error('Insufficient funds in wallet. Please ensure you have at least 3 ADA in your wallet.');
+      } else if (errorMessage.includes('network')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      } else if (errorMessage.includes('API key')) {
+        throw new Error('Blockfrost API configuration error. Please check your API key and network settings.');
+      } else {
+        throw new Error(`Failed to issue certificate: ${errorMessage}`);
+      }
     }
   }
 
-  /**
-   * Submit a simple transaction with metadata
-   * @param {Object} walletApi - Wallet API instance
-   * @param {Array} outputs - Transaction outputs
-   * @param {Object} metadata - Transaction metadata
-   * @returns {Promise<string>} - Transaction hash
-   */
-  async submitSimpleTransaction(walletApi, outputs, metadata) {
-    try {
-      // This is a placeholder for proper transaction building
-      // In a real implementation, you'd use a library like CardanoWasm or Lucid
-      // For now, let's simulate the transaction submission
-      
-      console.log('Simulating transaction submission...');
-      console.log('Outputs:', outputs);
-      console.log('Metadata:', metadata);
-      
-      // Simulate a successful transaction
-      const simulatedTxHash = 'simulated_tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      
-      // Store the transaction details locally for verification demo
-      const transactionRecord = {
-        txHash: simulatedTxHash,
-        metadata: metadata,
-        timestamp: new Date().toISOString(),
-        outputs: outputs
-      };
-      
-      // Store in localStorage for demo purposes
-      const existingTxs = JSON.parse(localStorage.getItem('demo_transactions') || '[]');
-      existingTxs.push(transactionRecord);
-      localStorage.setItem('demo_transactions', JSON.stringify(existingTxs));
-      
-      console.log('Demo transaction created:', simulatedTxHash);
-      
-      return simulatedTxHash;
-    } catch (error) {
-      console.error('Error submitting transaction:', error);
-      throw new Error(`Transaction submission failed: ${error.message}`);
-    }
-  }
+
 
   /**
    * Verify a certificate by checking if its hash exists on the blockchain
@@ -192,83 +205,101 @@ class BlockchainService {
       console.log('Verifying certificate with hash:', fileHash);
       console.log('Searching address:', walletAddress);
 
-      // First check local demo transactions
-      const demoResult = await this.verifyFromDemoTransactions(fileHash);
-      if (demoResult.valid) {
-        return demoResult;
+      const config = this.getConfig();
+      
+      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
+        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
       }
 
-      // If not found in demo transactions and we have a valid API key, check blockchain
-      const config = this.getConfig();
-      if (config.apiKey && config.apiKey !== 'preprodYOUR_API_KEY_HERE') {
-        // Get transactions for the address
-        const transactions = await this.getAddressTransactions(walletAddress);
-        console.log(`Found ${transactions.length} transactions to check`);
+      // Validate API key first
+      const isValidKey = await this.validateApiKey();
+      if (!isValidKey) {
+        throw new Error('Invalid Blockfrost API key. Please check your configuration.');
+      }
 
-        // Check each transaction for matching metadata
-        for (const tx of transactions) {
-          try {
-            const metadata = await this.getTransactionMetadata(tx.tx_hash);
-            console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
-            
-            // Look for certificate metadata in label 674
-            if (metadata && metadata['674'] && metadata['674'].certificate_hash === fileHash) {
-              return {
-                valid: true,
-                transactionHash: tx.tx_hash,
-                issuedAt: metadata['674'].issued_at,
-                fileName: metadata['674'].file_name,
-                issuer: metadata['674'].issuer,
-                blockTime: tx.block_time
-              };
-            }
-          } catch (metadataError) {
-            console.log(`No metadata found for transaction ${tx.tx_hash}`);
-            continue;
+      // Check if address is hex format and try to convert it
+      let searchAddress = walletAddress;
+      if (walletAddress.length > 50 && !walletAddress.startsWith('addr')) {
+        console.log('Address appears to be in hex format, attempting conversion...');
+        
+        // Initialize Lucid to use address utilities
+        try {
+          const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
+                              config.network === 'preview' ? 'Preview' : 'Preprod';
+          
+          const lucid = await Lucid.new(
+            new Blockfrost(config.baseUrl, config.apiKey),
+            lucidNetwork
+          );
+          
+          // Try to convert hex to bech32 using Lucid
+          // This might not work directly, so we'll fall back to using the hex address
+          searchAddress = walletAddress;
+        } catch (conversionError) {
+          console.warn('Could not convert address format:', conversionError);
+          searchAddress = walletAddress;
+        }
+      }
+
+      // Get transactions for the address
+      const transactions = await this.getAddressTransactions(searchAddress);
+      console.log(`Found ${transactions.length} transactions to check`);
+
+      if (transactions.length === 0) {
+        return {
+          valid: false,
+          message: 'No transactions found for this address. The certificate may have been issued from a different wallet or the address format may be incompatible.'
+        };
+      }
+
+      // Check each transaction for matching metadata
+      for (const tx of transactions) {
+        try {
+          const metadata = await this.getTransactionMetadata(tx.tx_hash);
+          console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
+          
+          // Look for certificate metadata in label 674
+          if (metadata && metadata['674'] && metadata['674'].certificate_hash === fileHash) {
+            return {
+              valid: true,
+              transactionHash: tx.tx_hash,
+              issuedAt: metadata['674'].issued_at,
+              fileName: metadata['674'].file_name,
+              issuer: metadata['674'].issuer,
+              blockTime: tx.block_time,
+              blockHeight: tx.block_height,
+              network: metadata['674'].network || config.network
+            };
           }
+        } catch (metadataError) {
+          console.log(`No metadata found for transaction ${tx.tx_hash}`);
+          continue;
         }
       }
 
       return {
         valid: false,
-        message: 'Certificate hash not found on blockchain or in demo transactions'
+        message: 'Certificate hash not found on blockchain. The certificate may be invalid or issued on a different network.'
       };
     } catch (error) {
       console.error('Error verifying certificate:', error);
-      throw new Error(`Failed to verify certificate: ${error.message}`);
-    }
-  }
-
-  /**
-   * Verify certificate from local demo transactions
-   * @param {string} fileHash - The hash to search for
-   * @returns {Promise<Object>} - Verification result
-   */
-  async verifyFromDemoTransactions(fileHash) {
-    try {
-      const demoTxs = JSON.parse(localStorage.getItem('demo_transactions') || '[]');
-      console.log('Checking demo transactions:', demoTxs.length);
-
-      for (const tx of demoTxs) {
-        if (tx.metadata && tx.metadata['674'] && tx.metadata['674'].certificate_hash === fileHash) {
-          return {
-            valid: true,
-            transactionHash: tx.txHash,
-            issuedAt: tx.metadata['674'].issued_at,
-            fileName: tx.metadata['674'].file_name,
-            issuer: tx.metadata['674'].issuer,
-            blockTime: tx.timestamp,
-            isDemo: true
-          };
-        }
+      
+      // Provide specific error messages for common issues
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      
+      if (errorMessage.includes('API key')) {
+        throw new Error('Blockfrost API configuration error. Please check your API key and network settings.');
+      } else if (errorMessage.includes('Invalid address format')) {
+        throw new Error('Address format not supported by Blockfrost API. This may be a hex-encoded address that needs conversion to bech32 format.');
+      } else if (errorMessage.includes('network') || errorMessage.includes('400')) {
+        throw new Error('Network error or invalid address format. Please check your wallet connection and try again.');
+      } else {
+        throw new Error(`Failed to verify certificate: ${errorMessage}`);
       }
-
-      return { valid: false };
-    } catch (error) {
-      console.error('Error checking demo transactions:', error);
-      return { valid: false };
     }
   }
+
+
 
   /**
    * Get transactions for a given address using Blockfrost API
@@ -283,22 +314,42 @@ class BlockchainService {
         throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
       }
 
-      const response = await fetch(`${config.baseUrl}/addresses/${address}/transactions?order=desc&count=50`, {
+      // Clean address
+      const cleanAddress = address.trim();
+      
+      // Check if address is hex format (long hex string without addr prefix)
+      if (cleanAddress.length > 50 && !cleanAddress.startsWith('addr') && !cleanAddress.startsWith('stake')) {
+        console.warn('Address appears to be in hex format:', cleanAddress.substring(0, 20) + '...');
+        throw new Error(`Invalid address format: ${cleanAddress.substring(0, 20)}... (hex format not supported)`);
+      }
+
+      console.log(`Fetching transactions for address: ${cleanAddress}`);
+
+      const response = await fetch(`${config.baseUrl}/addresses/${cleanAddress}/transactions?order=desc&count=50`, {
         headers: {
-          'project_id': config.apiKey
+          'project_id': config.apiKey,
+          'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
+        if (response.status === 404) {
+          console.log('Address not found or has no transactions');
+          return [];
+        }
+        if (response.status === 400) {
+          throw new Error(`Invalid address format: ${cleanAddress.substring(0, 20)}...`);
+        }
         throw new Error(`Blockfrost API error: ${response.status} ${response.statusText}`);
       }
 
       const transactions = await response.json();
       console.log('Fetched transactions from Blockfrost:', transactions);
-      return transactions;
+      return transactions || [];
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      throw new Error(`Failed to fetch transactions: ${error.message}`);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      throw new Error(`Failed to fetch transactions: ${errorMessage}`);
     }
   }
 
@@ -321,6 +372,7 @@ class BlockchainService {
         if (response.status === 404) {
           return null; // No metadata found
         }
+        console.warn(`Metadata fetch failed for ${txHash}: ${response.status} ${response.statusText}`);
         throw new Error(`Blockfrost API error: ${response.status} ${response.statusText}`);
       }
 
@@ -372,6 +424,165 @@ class BlockchainService {
 
     return true;
   }
+
+  /**
+   * Clean up any demo data from localStorage
+   * This function removes any legacy demo transaction data
+   */
+  cleanupDemoData() {
+    try {
+      localStorage.removeItem('demo_transactions');
+      console.log('Demo data cleaned up successfully');
+    } catch (error) {
+      console.error('Error cleaning up demo data:', error);
+    }
+  }
+
+  /**
+   * Get network info from config
+   * @returns {Object} - Network information
+   */
+  getNetworkInfo() {
+    const config = this.getConfig();
+    return {
+      network: config.network,
+      networkName: config.network === 'mainnet' ? 'Mainnet' : 
+                   config.network === 'preview' ? 'Preview Testnet' : 
+                   'Pre-production Testnet',
+      apiUrl: config.baseUrl,
+      isTestnet: config.network !== 'mainnet'
+    };
+  }
+
+  /**
+   * Validate Blockfrost API configuration
+   * @returns {Promise<boolean>} - Whether the API key is valid
+   */
+  async validateApiKey() {
+    try {
+      const config = this.getConfig();
+      
+      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
+        return false;
+      }
+
+      // Test the API key by making a simple request
+      const response = await fetch(`${config.baseUrl}/network`, {
+        headers: {
+          'project_id': config.apiKey
+        }
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('API key validation error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Test wallet connectivity and get basic info
+   * @param {Object} walletApi - The wallet API instance
+   * @returns {Promise<Object>} - Wallet information
+   */
+  async testWalletConnection(walletApi) {
+    try {
+      console.log('Testing wallet connection...');
+      
+      // Get basic wallet info
+      const address = await walletApi.getChangeAddress();
+      const usedAddresses = await walletApi.getUsedAddresses();
+      const unusedAddresses = await walletApi.getUnusedAddresses();
+      const utxos = await walletApi.getUtxos();
+      
+      const walletInfo = {
+        changeAddress: address,
+        usedAddressesCount: usedAddresses?.length || 0,
+        unusedAddressesCount: unusedAddresses?.length || 0,
+        utxosCount: utxos?.length || 0,
+        totalAda: utxos?.reduce((sum, utxo) => {
+          const amount = utxo.amount?.find(a => a.unit === 'lovelace');
+          return sum + (parseInt(amount?.quantity || 0) / 1000000);
+        }, 0) || 0
+      };
+      
+      console.log('Wallet info:', walletInfo);
+      return walletInfo;
+    } catch (error) {
+      console.error('Wallet connection test failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert hex address to bech32 format for Blockfrost API
+   * @param {string} hexAddress - The hex-encoded address
+   * @returns {string} - The bech32-encoded address
+   */
+  hexToBech32Address(hexAddress) {
+    try {
+      // If it's already a bech32 address, return as is
+      if (hexAddress.startsWith('addr') || hexAddress.startsWith('stake')) {
+        return hexAddress;
+      }
+      
+      // For hex addresses, we need to use Lucid's address utilities
+      // This is a simplified conversion - in practice you'd use proper address conversion
+      console.log('Converting hex address to bech32:', hexAddress);
+      
+      // For now, return the hex address and let the calling function handle the error
+      // In a real implementation, you'd use Lucid's address conversion utilities
+      return hexAddress;
+    } catch (error) {
+      console.error('Error converting address:', error);
+      return hexAddress;
+    }
+  }
+
+  /**
+   * Get bech32 address from wallet using Lucid
+   * @param {Object} walletApi - The wallet API instance
+   * @returns {Promise<string>} - The bech32 address
+   */
+  async getBech32Address(walletApi) {
+    try {
+      const config = this.getConfig();
+      
+      // Initialize Lucid
+      const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
+                          config.network === 'preview' ? 'Preview' : 'Preprod';
+      
+      const lucid = await Lucid.new(
+        new Blockfrost(config.baseUrl, config.apiKey),
+        lucidNetwork
+      );
+
+      // Create wallet adapter
+      const walletAdapter = {
+        getUtxos: () => walletApi.getUtxos(),
+        getUsedAddresses: () => walletApi.getUsedAddresses(),
+        getUnusedAddresses: () => walletApi.getUnusedAddresses(),
+        getChangeAddress: () => walletApi.getChangeAddress(),
+        getRewardAddresses: () => walletApi.getRewardAddresses(),
+        signTx: (tx) => walletApi.signTx(tx, true),
+        submitTx: (tx) => walletApi.submitTx(tx),
+      };
+
+      // Select wallet
+      lucid.selectWallet(walletAdapter);
+      
+      // Get the address in bech32 format
+      const address = await lucid.wallet.address();
+      console.log('Bech32 address from Lucid:', address);
+      
+      return address;
+    } catch (error) {
+      console.error('Error getting bech32 address:', error);
+      // Fallback to wallet's address
+      return await walletApi.getChangeAddress();
+    }
+  }
+
 }
 
 const blockchainService = new BlockchainService();

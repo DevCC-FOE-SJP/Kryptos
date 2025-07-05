@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import blockchainService from '../services/blockchainService';
 
-const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config }) => {
+const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, walletApi }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
@@ -47,8 +47,22 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config }) => {
       onStatusUpdate('Calculating file hash...', 'info');
       const fileHash = await blockchainService.calculateFileHash(selectedFile);
       
+      onStatusUpdate('Getting wallet address...', 'info');
+      
+      // Get bech32 address if we have wallet API, otherwise use the provided address
+      let searchAddress = walletAddress;
+      if (walletApi) {
+        try {
+          searchAddress = await blockchainService.getBech32Address(walletApi);
+          console.log('Using bech32 address for search:', searchAddress);
+        } catch (addressError) {
+          console.warn('Could not get bech32 address, using provided address:', addressError);
+          searchAddress = walletAddress;
+        }
+      }
+      
       onStatusUpdate('Searching blockchain for certificate...', 'info');
-      const result = await blockchainService.verifyCertificate(fileHash, walletAddress);
+      const result = await blockchainService.verifyCertificate(fileHash, searchAddress);
       
       setVerificationResult(result);
 
@@ -123,11 +137,9 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config }) => {
                 <div><strong>Issued:</strong> {verificationResult.issuedAt}</div>
                 <div><strong>File:</strong> {verificationResult.fileName}</div>
                 <div><strong>Issuer:</strong> {verificationResult.issuer}</div>
-                {verificationResult.isDemo && (
-                  <div className="text-xs bg-yellow-100 text-yellow-800 p-2 rounded mt-2">
-                    📋 <strong>Demo Mode:</strong> This certificate was issued in demo mode for testing purposes.
-                  </div>
-                )}
+                <div className="text-xs bg-blue-100 text-blue-800 p-2 rounded mt-2">
+                  � <strong>Blockchain Verified:</strong> This certificate was verified using real Cardano blockchain data.
+                </div>
               </div>
             )}
             

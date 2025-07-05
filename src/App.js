@@ -3,7 +3,6 @@ import { MeshProvider, useWallet } from '@meshsdk/react';
 import SimpleIssueCertificate from './components/SimpleIssueCertificate';
 import SimpleVerifyCertificate from './components/SimpleVerifyCertificate';
 import StatusDisplay from './components/StatusDisplay';
-import WalletDiagnostics from './components/WalletDiagnostics';
 import CustomWalletConnect from './components/CustomWalletConnect';
 import ConfigurationPanel from './components/ConfigurationPanel';
 
@@ -130,6 +129,15 @@ function App() {
     }
   };
 
+  // Clean up demo data on app startup
+  React.useEffect(() => {
+    // Import and use the cleanup function
+    import('./services/blockchainService').then(module => {
+      const blockchainService = module.default;
+      blockchainService.cleanupDemoData();
+    });
+  }, []);
+
   return (
     <MeshProvider network={appConfig.network || "preprod"}>
       <div className="min-h-screen bg-gray-100">
@@ -137,9 +145,12 @@ function App() {
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">CertiFy.</h1>
+                <h1 className="text-3xl font-bold text-gray-900">CertiFy</h1>
                 <p className="text-sm text-gray-600 mt-1">
                   Secure certificate issuance and verification on Cardano blockchain
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  v1.0 - Real Blockchain Implementation
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -190,9 +201,6 @@ function App() {
               <ConfigurationPanel onConfigUpdate={handleConfigUpdate} />
             </div>
             
-            {/* Wallet Diagnostics - Remove this in production */}
-            <WalletDiagnostics />
-            
             {/* Main content grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Issue Certificate Section */}
@@ -206,6 +214,7 @@ function App() {
               <SimpleVerifyCertificate 
                 onStatusUpdate={addStatusMessage}
                 walletAddress={connectionStatus.address}
+                walletApi={connectionStatus.walletApi}
                 config={appConfig}
               />
             </div>
@@ -220,6 +229,7 @@ function App() {
                 <div>
                   <h4 className="font-medium text-gray-800 mb-2">Issue Certificate:</h4>
                   <ol className="list-decimal list-inside space-y-1">
+                    <li>Configure your Blockfrost API key</li>
                     <li>Upload your PDF certificate file</li>
                     <li>Connect your Cardano wallet</li>
                     <li>Click "Issue" to store the file hash on blockchain</li>
@@ -229,25 +239,38 @@ function App() {
                 <div>
                   <h4 className="font-medium text-gray-800 mb-2">Verify Certificate:</h4>
                   <ol className="list-decimal list-inside space-y-1">
+                    <li>Configure your Blockfrost API key</li>
                     <li>Upload the certificate you want to verify</li>
                     <li>Connect your wallet to access blockchain</li>
                     <li>Click "Verify" to check against stored hashes</li>
-                    <li>Get instant verification results</li>
+                    <li>Get instant verification results from blockchain</li>
                   </ol>
                 </div>
-              </div>            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-xs text-blue-800">
-                <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
-                Make sure your wallet is set to "Preview" or "Pre-production" testnet mode.
-              </p>
-            </div>
-            
-            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-xs text-yellow-800">
-                <strong>Demo Mode:</strong> Currently running in demo mode with simulated blockchain transactions. 
-                In production, this would use real Cardano blockchain transactions via MeshSDK.
-              </p>
-            </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-xs text-blue-800">
+                  <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
+                  Make sure your wallet is set to "Preview" or "Pre-production" testnet mode and has test ADA.
+                </p>
+              </div>
+              
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-xs text-green-800">
+                  <strong>Real Blockchain:</strong> This app creates real Cardano blockchain transactions. 
+                  Configure your Blockfrost API key in the settings to enable transaction submission and verification.
+                </p>
+              </div>
+              
+              <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-md">
+                <p className="text-xs text-purple-800">
+                  <strong>Setup Required:</strong> Get your free Blockfrost API key at{' '}
+                  <a href="https://blockfrost.io" target="_blank" rel="noopener noreferrer" className="underline">
+                    blockfrost.io
+                  </a>{' '}
+                  and enter it in the configuration panel above.
+                </p>
+              </div>
             </div>
           </div>
         </main>
