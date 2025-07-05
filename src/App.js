@@ -1,37 +1,196 @@
-import { CardanoWallet, MeshProvider } from '@meshsdk/react';
+import React from 'react';
+import { CardanoWallet, MeshProvider, useWallet } from '@meshsdk/react';
+import IssueCertificate from './components/IssueCertificate';
+import VerifyCertificate from './components/VerifyCertificate';
+import StatusDisplay from './components/StatusDisplay';
+
+// Suppress React DOM warnings for SVG attributes from MeshSDK
+if (process.env.NODE_ENV === 'development') {
+  const originalError = console.error;
+  console.error = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Invalid DOM property') ||
+       args[0].includes('stroke-width') ||
+       args[0].includes('stroke-linecap') ||
+       args[0].includes('stroke-linejoin'))
+    ) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
+function WalletStatus({ status }) {
+  const { connected, wallet } = useWallet();
+
+  const handleConnect = async () => {
+    console.log('handleConnect called.');
+    try {
+      if (wallet) {
+        console.log('Wallet object before getChangeAddress:', wallet);
+        const address = await wallet.getChangeAddress();
+        console.log('Wallet address:', address);
+        console.log('Wallet object after getChangeAddress:', wallet);
+      } else {
+        console.log('Wallet object is null or undefined.');
+      }
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (connected) {
+      handleConnect();
+    }
+  }, [connected]);
+
+  React.useEffect(() => {
+    // Check if Cardano is available in window
+    console.log('Window.cardano:', window.cardano);
+    if (window.cardano) {
+      console.log('Available wallets:', Object.keys(window.cardano));
+      if (window.cardano.lace) {
+        console.log('Lace wallet found:', window.cardano.lace);
+      }
+    }
+  }, []);
+
+  return (
+    <div className="mb-4">
+      <p className={`text-sm ${status.connected ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
+        Wallet Status: {status.connected ? '✅ Connected' : '❌ Not Connected'}
+      </p>
+      {status.connected && status.walletName && (
+        <p className="text-xs text-gray-500 mt-1">
+          Using: {status.walletName} Wallet
+        </p>
+      )}
+      {status.error && (
+        <p className="text-xs text-red-500 mt-1">
+          Error: {status.error.message || status.error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function App() {
+  console.log("App component rendering...");
+  const [connectionStatus, setConnectionStatus] = React.useState({
+    connected: false,
+    error: null,
+    walletName: null,
+  });
+
+  // State for status messages
+  const [statusMessages, setStatusMessages] = React.useState([]);
+
+  // Function to add status messages
+  const addStatusMessage = (message, type = 'info', details = null) => {
+    const newMessage = {
+      id: Date.now(),
+      message,
+      type,
+      details,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    
+    setStatusMessages(prev => [newMessage, ...prev.slice(0, 19)]); // Keep only last 20 messages
+  };
+
+  // Clear status messages
+  const clearStatusMessages = () => {
+    setStatusMessages([]);
+  };
+
   return (
-    <MeshProvider>
+    <MeshProvider network="preprod">
       <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">University of Kelaniya Certificate Verifier</h1>
-            <CardanoWallet />
-          </div>
-        </header>
-        <main>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h2 className="text-2xl font-bold mb-4">Issue Certificate</h2>
-                  <input type="file" className="mb-4" />
-                  <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Issue
-                  </button>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h2 className="text-2xl font-bold mb-4">Verify Certificate</h2>
-                  <input type="file" className="mb-4" />
-                  <button className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                    Verify
-                  </button>
+        <header className="bg-white shadow-lg">
+          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">CertiFy.</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Secure certificate issuance and verification on Cardano blockchain
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <WalletStatus status={connectionStatus} />
+                <div className="flex gap-2 items-center">
+                  <CardanoWallet 
+                    label="Connect Wallet"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                    onConnected={(wallet) => {
+                      console.log('CardanoWallet onConnected callback fired!', wallet);
+                      setConnectionStatus({ connected: true, error: null, walletName: wallet.name });
+                      addStatusMessage(`Wallet connected successfully: ${wallet.name}`, 'success');
+                    }}
+                    onDisconnected={() => {
+                      console.log('Wallet disconnected!');
+                      setConnectionStatus({ connected: false, error: null, walletName: null });
+                      addStatusMessage('Wallet disconnected', 'info');
+                    }}
+                    supportedWallets={['lace', 'nami', 'eternl', 'flint', 'yoroi', 'typhon']}
+                  />
+                  {statusMessages.length > 0 && (
+                    <button
+                      onClick={clearStatusMessages}
+                      className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition-colors"
+                    >
+                      Clear Log
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold mb-4">Status</h2>
-                <p>...</p>
+            </div>
+          </div>
+        </header>
+        
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            {/* Main content grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Issue Certificate Section */}
+              <IssueCertificate onStatusUpdate={addStatusMessage} />
+              
+              {/* Verify Certificate Section */}
+              <VerifyCertificate onStatusUpdate={addStatusMessage} />
+            </div>
+            
+            {/* Status Display Section */}
+            <StatusDisplay messages={statusMessages} />
+            
+            {/* Information Panel */}
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">How it works</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Issue Certificate:</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Upload your PDF certificate file</li>
+                    <li>Connect your Cardano wallet</li>
+                    <li>Click "Issue" to store the file hash on blockchain</li>
+                    <li>Transaction creates permanent proof of authenticity</li>
+                  </ol>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Verify Certificate:</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Upload the certificate you want to verify</li>
+                    <li>Connect your wallet to access blockchain</li>
+                    <li>Click "Verify" to check against stored hashes</li>
+                    <li>Get instant verification results</li>
+                  </ol>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-xs text-blue-800">
+                  <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
+                  Make sure your wallet is set to "Preview" or "Pre-production" testnet mode.
+                </p>
               </div>
             </div>
           </div>
