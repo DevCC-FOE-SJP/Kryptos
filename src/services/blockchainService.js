@@ -1,13 +1,31 @@
-import { Transaction, ForgeScript, AssetMetadata } from '@meshsdk/core';
+import { Transaction } from '@meshsdk/core';
 import CryptoJS from 'crypto-js';
-
-// Blockfrost API configuration
-const BLOCKFROST_API_KEY = process.env.REACT_APP_BLOCKFROST_API_KEY || 'preprodYOUR_API_KEY_HERE';
-const BLOCKFROST_BASE_URL = 'https://cardano-preprod.blockfrost.io/api/v0';
 
 class BlockchainService {
   constructor() {
-    this.network = 'preprod';
+    this.defaultNetwork = 'preprod';
+  }
+
+  // Get current configuration from global state or use defaults
+  getConfig() {
+    const config = window.blockchainServiceConfig || {};
+    return {
+      apiKey: config.blockfrostApiKey || process.env.REACT_APP_BLOCKFROST_API_KEY || 'preprodYOUR_API_KEY_HERE',
+      network: config.network || this.defaultNetwork,
+      baseUrl: this.getBaseUrl(config.network || this.defaultNetwork)
+    };
+  }
+
+  getBaseUrl(network) {
+    switch (network) {
+      case 'mainnet':
+        return 'https://cardano-mainnet.blockfrost.io/api/v0';
+      case 'preview':
+        return 'https://cardano-preview.blockfrost.io/api/v0';
+      case 'preprod':
+      default:
+        return 'https://cardano-preprod.blockfrost.io/api/v0';
+    }
   }
 
   /**
@@ -135,9 +153,15 @@ class BlockchainService {
    */
   async getAddressTransactions(address) {
     try {
-      const response = await fetch(`${BLOCKFROST_BASE_URL}/addresses/${address}/transactions?order=desc&count=50`, {
+      const config = this.getConfig();
+      
+      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
+        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
+      }
+
+      const response = await fetch(`${config.baseUrl}/addresses/${address}/transactions?order=desc&count=50`, {
         headers: {
-          'project_id': BLOCKFROST_API_KEY
+          'project_id': config.apiKey
         }
       });
 
@@ -161,9 +185,11 @@ class BlockchainService {
    */
   async getTransactionMetadata(txHash) {
     try {
-      const response = await fetch(`${BLOCKFROST_BASE_URL}/txs/${txHash}/metadata`, {
+      const config = this.getConfig();
+      
+      const response = await fetch(`${config.baseUrl}/txs/${txHash}/metadata`, {
         headers: {
-          'project_id': BLOCKFROST_API_KEY
+          'project_id': config.apiKey
         }
       });
 
@@ -224,4 +250,5 @@ class BlockchainService {
   }
 }
 
-export default new BlockchainService();
+const blockchainService = new BlockchainService();
+export default blockchainService;

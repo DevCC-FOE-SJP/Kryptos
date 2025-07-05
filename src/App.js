@@ -1,8 +1,11 @@
 import React from 'react';
-import { CardanoWallet, MeshProvider, useWallet } from '@meshsdk/react';
-import IssueCertificate from './components/IssueCertificate';
-import VerifyCertificate from './components/VerifyCertificate';
+import { MeshProvider, useWallet } from '@meshsdk/react';
+import SimpleIssueCertificate from './components/SimpleIssueCertificate';
+import SimpleVerifyCertificate from './components/SimpleVerifyCertificate';
 import StatusDisplay from './components/StatusDisplay';
+import WalletDiagnostics from './components/WalletDiagnostics';
+import CustomWalletConnect from './components/CustomWalletConnect';
+import ConfigurationPanel from './components/ConfigurationPanel';
 
 // Suppress React DOM warnings for SVG attributes from MeshSDK
 if (process.env.NODE_ENV === 'development') {
@@ -24,7 +27,7 @@ if (process.env.NODE_ENV === 'development') {
 function WalletStatus({ status }) {
   const { connected, wallet } = useWallet();
 
-  const handleConnect = async () => {
+  const handleConnect = React.useCallback(async () => {
     console.log('handleConnect called.');
     try {
       if (wallet) {
@@ -38,13 +41,13 @@ function WalletStatus({ status }) {
     } catch (error) {
       console.error('Wallet connection error:', error);
     }
-  };
+  }, [wallet]);
 
   React.useEffect(() => {
     if (connected) {
       handleConnect();
     }
-  }, [connected]);
+  }, [connected, handleConnect]);
 
   React.useEffect(() => {
     // Check if Cardano is available in window
@@ -86,6 +89,13 @@ function App() {
 
   // State for status messages
   const [statusMessages, setStatusMessages] = React.useState([]);
+  
+  // State for configuration
+  const [appConfig, setAppConfig] = React.useState({
+    blockfrostApiKey: '',
+    network: 'preprod',
+    isValid: false
+  });
 
   // Function to add status messages
   const addStatusMessage = (message, type = 'info', details = null) => {
@@ -105,8 +115,23 @@ function App() {
     setStatusMessages([]);
   };
 
+  // Handle configuration updates
+  const handleConfigUpdate = (config, isValid) => {
+    setAppConfig({
+      ...config,
+      isValid
+    });
+    
+    // Update blockchain service configuration
+    if (window.blockchainServiceConfig) {
+      window.blockchainServiceConfig = config;
+    } else {
+      window.blockchainServiceConfig = config;
+    }
+  };
+
   return (
-    <MeshProvider network="preprod">
+    <MeshProvider network={appConfig.network || "preprod"}>
       <div className="min-h-screen bg-gray-100">
         <header className="bg-white shadow-lg">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -120,20 +145,29 @@ function App() {
               <div className="flex flex-col items-end gap-2">
                 <WalletStatus status={connectionStatus} />
                 <div className="flex gap-2 items-center">
-                  <CardanoWallet 
-                    label="Connect Wallet"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                    onConnected={(wallet) => {
-                      console.log('CardanoWallet onConnected callback fired!', wallet);
-                      setConnectionStatus({ connected: true, error: null, walletName: wallet.name });
-                      addStatusMessage(`Wallet connected successfully: ${wallet.name}`, 'success');
+                  <CustomWalletConnect 
+                    onConnected={(walletInfo) => {
+                      console.log('Custom wallet connected:', walletInfo);
+                      setConnectionStatus({ 
+                        connected: true, 
+                        error: null, 
+                        walletName: walletInfo.name,
+                        walletApi: walletInfo.api,
+                        address: walletInfo.address,
+                        networkId: walletInfo.networkId
+                      });
+                      addStatusMessage(`Wallet connected: ${walletInfo.name} (${walletInfo.networkId === 0 ? 'Testnet' : 'Mainnet'})`, 'success');
                     }}
                     onDisconnected={() => {
                       console.log('Wallet disconnected!');
                       setConnectionStatus({ connected: false, error: null, walletName: null });
                       addStatusMessage('Wallet disconnected', 'info');
                     }}
-                    supportedWallets={['lace', 'nami', 'eternl', 'flint', 'yoroi', 'typhon']}
+                    onError={(error) => {
+                      console.error('Wallet connection error:', error);
+                      setConnectionStatus({ connected: false, error: error, walletName: null });
+                      addStatusMessage(`Connection failed: ${error.message}`, 'error');
+                    }}
                   />
                   {statusMessages.length > 0 && (
                     <button
@@ -151,13 +185,29 @@ function App() {
         
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
+            {/* Configuration Panel */}
+            <div className="mb-6">
+              <ConfigurationPanel onConfigUpdate={handleConfigUpdate} />
+            </div>
+            
+            {/* Wallet Diagnostics - Remove this in production */}
+            <WalletDiagnostics />
+            
             {/* Main content grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Issue Certificate Section */}
-              <IssueCertificate onStatusUpdate={addStatusMessage} />
+              <SimpleIssueCertificate 
+                onStatusUpdate={addStatusMessage} 
+                walletApi={connectionStatus.walletApi}
+                config={appConfig}
+              />
               
               {/* Verify Certificate Section */}
-              <VerifyCertificate onStatusUpdate={addStatusMessage} />
+              <SimpleVerifyCertificate 
+                onStatusUpdate={addStatusMessage}
+                walletAddress={connectionStatus.address}
+                config={appConfig}
+              />
             </div>
             
             {/* Status Display Section */}
