@@ -48,11 +48,27 @@ const StatusDisplay = ({ messages }) => {
               </span>
               <div className="flex-1">
                 <p className="text-sm font-medium break-words">
-                  {message.text}
+                  {message.message}
                 </p>
                 <p className="text-xs opacity-75 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
+                  {message.timestamp}
                 </p>
+                {message.details && (
+                  <div className="mt-2 text-xs bg-gray-50 rounded p-2 border">
+                    {message.details.txHash && (
+                      <div><strong>Transaction:</strong> {message.details.txHash}</div>
+                    )}
+                    {message.details.fileHash && (
+                      <div><strong>File Hash:</strong> {message.details.fileHash.substring(0, 16)}...</div>
+                    )}
+                    {message.details.fileName && (
+                      <div><strong>File:</strong> {message.details.fileName}</div>
+                    )}
+                    {message.details.fileSize && (
+                      <div><strong>Size:</strong> {message.details.fileSize}</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
