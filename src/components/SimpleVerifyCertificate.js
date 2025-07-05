@@ -123,6 +123,11 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config }) => {
                 <div><strong>Issued:</strong> {verificationResult.issuedAt}</div>
                 <div><strong>File:</strong> {verificationResult.fileName}</div>
                 <div><strong>Issuer:</strong> {verificationResult.issuer}</div>
+                {verificationResult.isDemo && (
+                  <div className="text-xs bg-yellow-100 text-yellow-800 p-2 rounded mt-2">
+                    📋 <strong>Demo Mode:</strong> This certificate was issued in demo mode for testing purposes.
+                  </div>
+                )}
               </div>
             )}
             

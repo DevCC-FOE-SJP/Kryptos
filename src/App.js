@@ -235,13 +235,19 @@ function App() {
                     <li>Get instant verification results</li>
                   </ol>
                 </div>
-              </div>
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
-                  Make sure your wallet is set to "Preview" or "Pre-production" testnet mode.
-                </p>
-              </div>
+              </div>            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-xs text-blue-800">
+                <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
+                Make sure your wallet is set to "Preview" or "Pre-production" testnet mode.
+              </p>
+            </div>
+            
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-xs text-yellow-800">
+                <strong>Demo Mode:</strong> Currently running in demo mode with simulated blockchain transactions. 
+                In production, this would use real Cardano blockchain transactions via MeshSDK.
+              </p>
+            </div>
             </div>
           </div>
         </main>
