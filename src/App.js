@@ -102,9 +102,7 @@ function App() {
   
   // State for configuration
   const [appConfig, setAppConfig] = React.useState({
-    blockfrostApiKey: '',
     network: 'preprod',
-    isValid: false
   });
 
   // Function to add status messages
@@ -126,18 +124,10 @@ function App() {
   };
 
   // Handle configuration updates
-  const handleConfigUpdate = (config, isValid) => {
+  const handleConfigUpdate = (config) => {
     setAppConfig({
-      ...config,
-      isValid
+      network: config.network
     });
-    
-    // Update blockchain service configuration
-    if (window.blockchainServiceConfig) {
-      window.blockchainServiceConfig = config;
-    } else {
-      window.blockchainServiceConfig = config;
-    }
   };
 
   // Handle Get Started button click
@@ -345,7 +335,6 @@ function App() {
                 <SimpleIssueCertificate 
                   onStatusUpdate={addStatusMessage} 
                   walletApi={connectionStatus.walletApi}
-                  config={appConfig}
                 />
                 
                 {/* Verify Certificate Section */}
@@ -353,7 +342,6 @@ function App() {
                   onStatusUpdate={addStatusMessage}
                   walletAddress={connectionStatus.address}
                   walletApi={connectionStatus.walletApi}
-                  config={appConfig}
                 />
               </div>
               

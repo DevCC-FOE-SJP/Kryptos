@@ -13,15 +13,7 @@ class BlockchainService {
     this.cleanupDemoData();
   }
 
-  // Get current configuration from global state or use defaults
-  getConfig() {
-    const config = window.blockchainServiceConfig || {};
-    return {
-      apiKey: config.blockfrostApiKey || process.env.REACT_APP_BLOCKFROST_API_KEY || 'preprodYOUR_API_KEY_HERE',
-      network: config.network || this.defaultNetwork,
-      baseUrl: this.getBaseUrl(config.network || this.defaultNetwork)
-    };
-  }
+  
 
   getBaseUrl(network) {
     switch (network) {
@@ -32,6 +24,36 @@ class BlockchainService {
       case 'preprod':
       default:
         return 'https://cardano-preprod.blockfrost.io/api/v0';
+    }
+  }
+
+  async makeBlockfrostRequest(endpoint, method = 'get', body = null, params = null, contentType = 'application/json') {
+    const backendUrl = 'http://localhost:5000/api/blockfrost'; // Your backend proxy URL
+
+    try {
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          endpoint,
+          method,
+          body,
+          params,
+          contentType // Pass content type for specific cases like CBOR
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Backend proxy error: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error from backend proxy:', error);
+      throw new Error(error.message || 'Failed to communicate with backend proxy.');
     }
   }
 
@@ -74,27 +96,16 @@ class BlockchainService {
         throw new Error('Wallet API not provided. Please connect your wallet.');
       }
 
-      const config = this.getConfig();
+      const serviceConfig = this.getConfig();
       
-      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
-        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
-      }
-
-      // Validate API key first
-      const isValidKey = await this.validateApiKey();
-      if (!isValidKey) {
-        throw new Error('Invalid Blockfrost API key. Please check your configuration.');
-      }
-
       // Initialize Lucid with Blockfrost
-      const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
-                          config.network === 'preview' ? 'Preview' : 'Preprod';
+      const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
+                          serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
       
       console.log('Initializing Lucid with network:', lucidNetwork);
-      console.log('Blockfrost config:', { baseUrl: config.baseUrl, network: config.network });
       
       const lucid = await Lucid.new(
-        new Blockfrost(config.baseUrl, config.apiKey),
+        new Blockfrost(serviceConfig.baseUrl, serviceConfig.apiKey),
         lucidNetwork
       );
 
@@ -169,7 +180,13 @@ class BlockchainService {
       console.log('Transaction signed, submitting...');
 
       // Submit transaction
-      const txHash = await signedTx.submit();
+      const txHash = await this.makeBlockfrostRequest(
+        '/tx/submit',
+        'post',
+        signedTx.toCbor(),
+        null,
+        'application/cbor'
+      );
       
       console.log('Transaction submitted with hash:', txHash);
 
@@ -205,18 +222,6 @@ class BlockchainService {
       console.log('Verifying certificate with hash:', fileHash);
       console.log('Searching address:', walletAddress);
 
-      const config = this.getConfig();
-      
-      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
-        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
-      }
-
-      // Validate API key first
-      const isValidKey = await this.validateApiKey();
-      if (!isValidKey) {
-        throw new Error('Invalid Blockfrost API key. Please check your configuration.');
-      }
-
       // Check if address is hex format and try to convert it
       let searchAddress = walletAddress;
       if (walletAddress.length > 50 && !walletAddress.startsWith('addr')) {
@@ -242,8 +247,12 @@ class BlockchainService {
       }
 
       // Get transactions for the address
-      const transactions = await this.getAddressTransactions(searchAddress);
-      console.log(`Found ${transactions.length} transactions to check`);
+      const transactions = await this.makeBlockfrostRequest(
+        `/addresses/${searchAddress}/transactions`,
+        'get',
+        null,
+        { order: 'desc', count: 50 }
+      );
 
       if (transactions.length === 0) {
         return {
@@ -255,7 +264,7 @@ class BlockchainService {
       // Check each transaction for matching metadata
       for (const tx of transactions) {
         try {
-          const metadata = await this.getTransactionMetadata(tx.tx_hash);
+          const metadata = await this.makeBlockfrostRequest(`/txs/${tx.tx_hash}/metadata`);
           console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
           
           // Look for certificate metadata in label 674
@@ -301,96 +310,7 @@ class BlockchainService {
 
 
 
-  /**
-   * Get transactions for a given address using Blockfrost API
-   * @param {string} address - The wallet address
-   * @returns {Promise<Array>} - Array of transactions
-   */
-  async getAddressTransactions(address) {
-    try {
-      const config = this.getConfig();
-      
-      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
-        throw new Error('Blockfrost API key not configured. Please set up your API key in the configuration panel.');
-      }
-
-      // Clean address
-      const cleanAddress = address.trim();
-      
-      // Check if address is hex format (long hex string without addr prefix)
-      if (cleanAddress.length > 50 && !cleanAddress.startsWith('addr') && !cleanAddress.startsWith('stake')) {
-        console.warn('Address appears to be in hex format:', cleanAddress.substring(0, 20) + '...');
-        throw new Error(`Invalid address format: ${cleanAddress.substring(0, 20)}... (hex format not supported)`);
-      }
-
-      console.log(`Fetching transactions for address: ${cleanAddress}`);
-
-      const response = await fetch(`${config.baseUrl}/addresses/${cleanAddress}/transactions?order=desc&count=50`, {
-        headers: {
-          'project_id': config.apiKey,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log('Address not found or has no transactions');
-          return [];
-        }
-        if (response.status === 400) {
-          throw new Error(`Invalid address format: ${cleanAddress.substring(0, 20)}...`);
-        }
-        throw new Error(`Blockfrost API error: ${response.status} ${response.statusText}`);
-      }
-
-      const transactions = await response.json();
-      console.log('Fetched transactions from Blockfrost:', transactions);
-      return transactions || [];
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      throw new Error(`Failed to fetch transactions: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Get metadata for a specific transaction
-   * @param {string} txHash - The transaction hash
-   * @returns {Promise<Object>} - Transaction metadata
-   */
-  async getTransactionMetadata(txHash) {
-    try {
-      const config = this.getConfig();
-      
-      const response = await fetch(`${config.baseUrl}/txs/${txHash}/metadata`, {
-        headers: {
-          'project_id': config.apiKey
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null; // No metadata found
-        }
-        console.warn(`Metadata fetch failed for ${txHash}: ${response.status} ${response.statusText}`);
-        throw new Error(`Blockfrost API error: ${response.status} ${response.statusText}`);
-      }
-
-      const metadataArray = await response.json();
-      console.log('Raw metadata from Blockfrost:', metadataArray);
-      
-      // Convert array format to object format
-      const metadata = {};
-      metadataArray.forEach(item => {
-        metadata[item.label] = item.json_metadata;
-      });
-      
-      return metadata;
-    } catch (error) {
-      console.error('Error fetching transaction metadata:', error);
-      return null;
-    }
-  }
+  
 
   /**
    * Format file size for display
@@ -460,20 +380,9 @@ class BlockchainService {
    */
   async validateApiKey() {
     try {
-      const config = this.getConfig();
-      
-      if (!config.apiKey || config.apiKey === 'preprodYOUR_API_KEY_HERE') {
-        return false;
-      }
-
-      // Test the API key by making a simple request
-      const response = await fetch(`${config.baseUrl}/network`, {
-        headers: {
-          'project_id': config.apiKey
-        }
-      });
-
-      return response.ok;
+      // Test the API key by making a simple request via the proxy
+      const response = await this.makeBlockfrostRequest('/network');
+      return response.status === 200; // Assuming proxy returns status code or similar indication
     } catch (error) {
       console.error('API key validation error:', error);
       return false;
@@ -546,14 +455,11 @@ class BlockchainService {
    */
   async getBech32Address(walletApi) {
     try {
-      const config = this.getConfig();
-      
       // Initialize Lucid
-      const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
-                          config.network === 'preview' ? 'Preview' : 'Preprod';
+      const lucidNetwork = 'Preprod'; // Assuming preprod for now, can be dynamic if needed
       
       const lucid = await Lucid.new(
-        new Blockfrost(config.baseUrl, config.apiKey),
+        new Blockfrost('https://cardano-preprod.blockfrost.io/api/v0', 'YOUR_API_KEY_HERE'), // Blockfrost API key is handled by backend
         lucidNetwork
       );
 
