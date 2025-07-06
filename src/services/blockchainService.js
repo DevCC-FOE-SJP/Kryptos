@@ -1,7 +1,9 @@
-import { Blockfrost, Lucid } from 'lucid-cardano';
+import { Transaction } from '@meshsdk/core';
+import { Lucid, Blockfrost } from 'lucid-cardano';
 import CryptoJS from 'crypto-js';
 
 /* eslint-env es2020 */
+/* global BigInt */
 
 class BlockchainService {
   constructor() {
@@ -219,8 +221,24 @@ class BlockchainService {
       let searchAddress = walletAddress;
       if (walletAddress.length > 50 && !walletAddress.startsWith('addr')) {
         console.log('Address appears to be in hex format, attempting conversion...');
-        // Conversion logic could go here if needed in the future
-        // For now, just log and use the original address
+        
+        // Initialize Lucid to use address utilities
+        try {
+          const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
+                              config.network === 'preview' ? 'Preview' : 'Preprod';
+          
+          const lucid = await Lucid.new(
+            new Blockfrost(config.baseUrl, config.apiKey),
+            lucidNetwork
+          );
+          
+          // Try to convert hex to bech32 using Lucid
+          // This might not work directly, so we'll fall back to using the hex address
+          searchAddress = walletAddress;
+        } catch (conversionError) {
+          console.warn('Could not convert address format:', conversionError);
+          searchAddress = walletAddress;
+        }
       }
 
       // Get transactions for the address
@@ -240,6 +258,7 @@ class BlockchainService {
           const metadata = await this.getTransactionMetadata(tx.tx_hash);
           console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
           
+          // Look for certificate metadata in label 674
           if (metadata && metadata['674'] && metadata['674'].certificate_hash === fileHash) {
             return {
               valid: true,

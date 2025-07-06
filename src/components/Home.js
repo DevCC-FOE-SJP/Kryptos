@@ -199,12 +199,12 @@ const Home = ({ onGetStarted }) => {
         <div className="text-center">
           <button
             onClick={onGetStarted}
-            className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-[#32027a] bg-white rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 hover:bg-blue-50"
+            className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-[#32027a] bg-white rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-500 hover:bg-blue-50"
           >
-            <span className="relative z-10">Get Started</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#32027a] to-[#0053d0] rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            <span className="relative z-10 transition-all duration-300 group-hover:text-white">Get Started</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#32027a] to-[#0053d0] rounded-2xl opacity-0 group-hover:opacity-90 transition-all duration-500 transform scale-95 group-hover:scale-100"></div>
             <svg
-              className="ml-3 w-6 h-6 transform group-hover:translate-x-1 transition-transform duration-300"
+              className="ml-3 w-6 h-6 transform group-hover:translate-x-2 transition-all duration-500 relative z-10 group-hover:text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

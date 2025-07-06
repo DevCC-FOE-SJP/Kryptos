@@ -6,6 +6,10 @@ import StatusDisplay from './components/StatusDisplay';
 import CustomWalletConnect from './components/CustomWalletConnect';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import Home from './components/Home';
+import Tutorial from './components/Tutorial';
+import MainMenu from './components/MainMenu';
+import IssueCertificatePage from './components/IssueCertificatePage';
+import VerifyCertificatePage from './components/VerifyCertificatePage';
 
 // Suppress React DOM warnings for SVG attributes from MeshSDK
 if (process.env.NODE_ENV === 'development') {
@@ -81,7 +85,12 @@ function WalletStatus({ status }) {
 
 function App() {
   console.log("App component rendering...");
-  const [showHome, setShowHome] = React.useState(true);
+  const [currentView, setCurrentView] = React.useState('home'); // 'home', 'tutorial', 'menu', 'issue', 'verify', 'app'
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const [transitionDirection, setTransitionDirection] = React.useState('forward'); // 'forward' or 'backward'
+  const [tutorialCompleted, setTutorialCompleted] = React.useState(
+    localStorage.getItem('tutorial_completed') === 'true'
+  );
   const [connectionStatus, setConnectionStatus] = React.useState({
     connected: false,
     error: null,
@@ -131,6 +140,42 @@ function App() {
     }
   };
 
+  // Handle Get Started button click
+  const handleGetStarted = () => {
+    if (tutorialCompleted) {
+      // User has seen tutorial before, go directly to menu
+      transitionToView('menu', 'forward');
+    } else {
+      // First time user, show tutorial
+      transitionToView('tutorial', 'forward');
+    }
+  };
+
+  // Handle tutorial completion
+  const handleTutorialComplete = () => {
+    setTutorialCompleted(true);
+    localStorage.setItem('tutorial_completed', 'true');
+    transitionToView('menu', 'forward');
+  };
+
+  // Smooth transition function
+  const transitionToView = (newView, direction = 'forward') => {
+    if (isTransitioning || currentView === newView) return;
+    
+    setIsTransitioning(true);
+    setTransitionDirection(direction);
+    
+    // Fade out current view (300ms)
+    setTimeout(() => {
+      setCurrentView(newView);
+      
+      // Fade in new view (300ms)
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 50); // Small delay to ensure DOM update
+    }, 300);
+  };
+
   // Clean up demo data on app startup
   React.useEffect(() => {
     // Import and use the cleanup function
@@ -142,33 +187,107 @@ function App() {
 
   return (
     <MeshProvider network={appConfig.network || "preprod"}>
-      {showHome ? (
-        <Home onGetStarted={() => setShowHome(false)} />
-      ) : (
-        <div className="min-h-screen bg-gray-100">
-          <header className="bg-white shadow-lg">
-            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setShowHome(true)}
-                    className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Back to Home
-                  </button>
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">CertiFy</h1>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Secure certificate issuance and verification on Cardano blockchain
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      v1.0 - Real Blockchain Implementation
-                    </p>
+      <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a]">
+        {/* Home View */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'home' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <Home onGetStarted={handleGetStarted} />
+          </div>
+        </div>
+        
+        {/* Tutorial View */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'tutorial' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <Tutorial 
+              onComplete={handleTutorialComplete} 
+              onHome={() => transitionToView('home', 'backward')}
+            />
+          </div>
+        </div>
+        
+        {/* Main Menu View */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'menu' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <MainMenu 
+              onSelectOption={(option) => {
+                if (option === 'issue') {
+                  transitionToView('issue', 'forward');
+                } else if (option === 'verify') {
+                  transitionToView('verify', 'forward');
+                }
+              }}
+              onHome={() => transitionToView('home', 'backward')}
+            />
+          </div>
+        </div>
+        
+        {/* Issue Certificate Page */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'issue' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <IssueCertificatePage 
+              onBack={() => transitionToView('menu', 'backward')}
+              onHome={() => transitionToView('home', 'backward')}
+            />
+          </div>
+        </div>
+        
+        {/* Verify Certificate Page */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'verify' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <VerifyCertificatePage 
+              onBack={() => transitionToView('menu', 'backward')}
+              onHome={() => transitionToView('home', 'backward')}
+            />
+          </div>
+        </div>
+        
+        {/* App View (Full Dashboard) */}
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
+          currentView === 'app' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          <div className="w-full h-full overflow-y-auto">
+            <div className="min-h-screen bg-gray-100">
+            <header className="bg-white shadow-lg">
+              <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => transitionToView('menu', 'backward')}
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-800 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Back to Menu
+                    </button>
+                    <button
+                      onClick={() => transitionToView('home', 'backward')}
+                      className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#32027a] to-[#0053d0] rounded-lg flex items-center justify-center">
+                        <span className="text-white text-xl font-bold">C</span>
+                      </div>
+                      <div>
+                        <h1 className="text-3xl font-bold text-gray-900">CertiFy</h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Secure certificate issuance and verification on Cardano blockchain
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          v1.0 - Real Blockchain Implementation
+                        </p>
+                      </div>
+                    </button>
                   </div>
-                </div>
                 <div className="flex flex-col items-end gap-2">
                   <WalletStatus status={connectionStatus} />
                   <div className="flex gap-2 items-center">
@@ -290,8 +409,10 @@ function App() {
               </div>
             </div>
           </main>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </MeshProvider>
   );
 }
