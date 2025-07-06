@@ -80,15 +80,15 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">
+    <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg border border-white border-opacity-20 p-6">
+      <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
         🔍 Verify Certificate
       </h2>
 
       <div className="space-y-4">
         {/* File Upload */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-white mb-2">
             Select Certificate File (PDF)
           </label>
           <input
@@ -96,10 +96,10 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
             type="file"
             accept=".pdf"
             onChange={handleFileSelect}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-md focus:ring-2 focus:ring-white focus:ring-opacity-50 text-white placeholder-blue-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#32027a] hover:file:bg-blue-50"
           />
           {selectedFile && (
-            <div className="mt-2 text-sm text-green-600">
+            <div className="mt-2 text-sm text-green-200 bg-green-500 bg-opacity-20 p-2 rounded backdrop-blur-sm">
               ✅ Selected: {selectedFile.name} ({blockchainService.formatFileSize(selectedFile.size)})
             </div>
           )}
@@ -109,10 +109,10 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
         <button
           onClick={handleVerify}
           disabled={!isConnected || !isConfigured || !selectedFile || isLoading}
-          className={`w-full py-3 px-4 rounded-md font-medium transition-all ${
+          className={`w-full py-3 px-4 rounded-md font-medium transition-all backdrop-blur-sm ${
             !isConnected || !isConfigured || !selectedFile || isLoading
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
+              ? 'bg-gray-500 bg-opacity-30 text-gray-300 cursor-not-allowed border border-gray-300 border-opacity-30'
+              : 'bg-green-600 bg-opacity-80 text-white hover:bg-opacity-100 border border-green-400 border-opacity-50 hover:border-opacity-80'
           }`}
         >
           {isLoading ? 'Verifying...' : 'Verify Certificate'}
@@ -120,31 +120,31 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
 
         {/* Verification Result */}
         {verificationResult && (
-          <div className={`p-4 rounded-lg border ${
+          <div className={`p-4 rounded-lg border backdrop-blur-sm ${
             verificationResult.valid 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
+              ? 'bg-green-500 bg-opacity-20 border-green-200 border-opacity-30' 
+              : 'bg-red-500 bg-opacity-20 border-red-200 border-opacity-30'
           }`}>
             <div className={`font-medium ${
-              verificationResult.valid ? 'text-green-800' : 'text-red-800'
+              verificationResult.valid ? 'text-green-200' : 'text-red-200'
             }`}>
               {verificationResult.valid ? '✅ VALID Certificate' : '❌ INVALID Certificate'}
             </div>
             
             {verificationResult.valid && (
-              <div className="mt-2 text-sm text-green-700 space-y-1">
+              <div className="mt-2 text-sm text-green-100 space-y-1">
                 <div><strong>Transaction:</strong> {verificationResult.transactionHash}</div>
                 <div><strong>Issued:</strong> {verificationResult.issuedAt}</div>
                 <div><strong>File:</strong> {verificationResult.fileName}</div>
                 <div><strong>Issuer:</strong> {verificationResult.issuer}</div>
-                <div className="text-xs bg-blue-100 text-blue-800 p-2 rounded mt-2">
-                  � <strong>Blockchain Verified:</strong> This certificate was verified using real Cardano blockchain data.
+                <div className="text-xs bg-blue-500 bg-opacity-20 text-blue-100 p-2 rounded mt-2 backdrop-blur-sm border border-blue-200 border-opacity-30">
+                  🔗 <strong>Blockchain Verified:</strong> This certificate was verified using real Cardano blockchain data.
                 </div>
               </div>
             )}
             
             {!verificationResult.valid && (
-              <div className="mt-1 text-sm text-red-700">
+              <div className="mt-1 text-sm text-red-100">
                 This certificate was not found on the blockchain or has been tampered with.
               </div>
             )}
@@ -153,12 +153,12 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
 
         {/* Status Messages */}
         {!isConnected && (
-          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+          <div className="text-sm text-red-200 bg-red-500 bg-opacity-20 p-3 rounded backdrop-blur-sm border border-red-200 border-opacity-30">
             ❌ Wallet not connected
           </div>
         )}
         {!isConfigured && (
-          <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+          <div className="text-sm text-orange-200 bg-orange-500 bg-opacity-20 p-3 rounded backdrop-blur-sm border border-orange-200 border-opacity-30">
             ⚠️ Blockfrost API key not configured
           </div>
         )}
