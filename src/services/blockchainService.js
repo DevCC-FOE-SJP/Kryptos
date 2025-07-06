@@ -11,6 +11,37 @@ class BlockchainService {
     
     // Clean up any legacy demo data on initialization
     this.cleanupDemoData();
+
+    // Define ProxyBlockfrost as a class property
+    this.ProxyBlockfrost = class {
+      constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+      }
+
+      async get(endpoint) {
+        return await blockchainService.makeBlockfrostRequest(endpoint, 'get');
+      }
+
+      async post(endpoint, body) {
+        return await blockchainService.makeBlockfrostRequest(endpoint, 'post', body);
+      }
+
+      async getProtocolParameters() {
+        return await this.get('/epochs/latest/parameters');
+      }
+
+      async getUtxos(address) {
+        return await this.get(`/addresses/${address}/utxos`);
+      }
+
+      async getTx(txHash) {
+        return await this.get(`/txs/${txHash}`);
+      }
+
+      async submitTx(txCbor) {
+        return await this.post('/tx/submit', txCbor);
+      }
+    };
   }
 
   getConfig() {
@@ -113,9 +144,9 @@ class BlockchainService {
                           serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
       
       console.log('Initializing Lucid with network:', lucidNetwork);
-      
+
       const lucid = await Lucid.new(
-        new Blockfrost(serviceConfig.baseUrl, 'placeholder-api-key'),
+        new this.ProxyBlockfrost(serviceConfig.baseUrl),
         lucidNetwork
       );
 
@@ -244,7 +275,7 @@ class BlockchainService {
                               serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
           
           const lucid = await Lucid.new(
-            new Blockfrost(serviceConfig.baseUrl, 'placeholder-api-key'),
+            new this.ProxyBlockfrost(serviceConfig.baseUrl),
             lucidNetwork
           );
           
@@ -467,10 +498,12 @@ class BlockchainService {
   async getBech32Address(walletApi) {
     try {
       // Initialize Lucid
-      const lucidNetwork = 'Preprod'; // Assuming preprod for now, can be dynamic if needed
+      const serviceConfig = this.getConfig();
+      const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
+                          serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
       
       const lucid = await Lucid.new(
-        new Blockfrost('https://cardano-preprod.blockfrost.io/api/v0', 'YOUR_API_KEY_HERE'), // Blockfrost API key is handled by backend
+        new this.ProxyBlockfrost(serviceConfig.baseUrl),
         lucidNetwork
       );
 
