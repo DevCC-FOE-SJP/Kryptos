@@ -96,7 +96,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a] relative">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-primary-light relative">
       <header className="relative z-10 bg-white bg-opacity-10 backdrop-blur-md border-b border-white border-opacity-20">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
@@ -110,8 +110,8 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
                 </svg>
                 Back to Menu
               </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-blue-200 rounded-lg flex items-center justify-center">
-                <span className="text-[#32027a] text-xl font-bold">C</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-primary text-xl font-bold">C</span>
               </div>
               <button
                 onClick={() => onHome()}
@@ -190,7 +190,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
           </div>
           
           {/* Tutorial Information Section */}
-          <div className="mb-6 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg border border-white border-opacity-20 p-6">
+          <div className="mb-6 bg-white bg-opacity-5 backdrop-blur-sm rounded-lg border border-white border-opacity-20 p-6">
             <div className="flex items-center space-x-3 mb-6">
               <div className="text-3xl text-white">
                 <FontAwesomeIcon icon={faCertificate} />
@@ -199,7 +199,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 bg-white bg-opacity-10 rounded-lg backdrop-blur-sm">
+              <div className="p-4 bg-white bg-opacity-5 rounded-lg backdrop-blur-sm">
                 <h3 className="text-lg font-semibold text-white mb-3">Step-by-Step Process:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-blue-100">
                   <li>Configure your Blockfrost API key in the settings above</li>
@@ -211,7 +211,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
               </div>
 
               <div className="space-y-3">
-                <div className="p-3 bg-blue-50 bg-opacity-20 border border-blue-200 border-opacity-30 rounded-md backdrop-blur-sm">
+                <div className="p-3 bg-blue-50 bg-opacity-10 border border-blue-200 border-opacity-30 rounded-md backdrop-blur-sm">
                   <p className="text-sm text-white">
                     <FontAwesomeIcon icon={faKey} className="mr-2" />
                     <strong>Note:</strong> This app uses Cardano's testnet for demonstration. 
@@ -219,7 +219,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
                   </p>
                 </div>
                 
-                <div className="p-3 bg-green-50 bg-opacity-20 border border-green-200 border-opacity-30 rounded-md backdrop-blur-sm">
+                <div className="p-3 bg-green-50 bg-opacity-10 border border-green-200 border-opacity-30 rounded-md backdrop-blur-sm">
                   <p className="text-sm text-white">
                     <FontAwesomeIcon icon={faLink} className="mr-2" />
                     <strong>Real Blockchain:</strong> This app creates real Cardano blockchain transactions. 
@@ -227,7 +227,7 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
                   </p>
                 </div>
                 
-                <div className="p-3 bg-purple-50 bg-opacity-20 border border-purple-200 border-opacity-30 rounded-md backdrop-blur-sm">
+                <div className="p-3 bg-purple-50 bg-opacity-10 border border-purple-200 border-opacity-30 rounded-md backdrop-blur-sm">
                   <p className="text-sm text-white">
                     <FontAwesomeIcon icon={faWallet} className="mr-2" />
                     <strong>Setup Required:</strong> Get your free Blockfrost API key at{' '}

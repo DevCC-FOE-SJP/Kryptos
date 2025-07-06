@@ -96,7 +96,7 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a] relative">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-primary-light relative">
       <header className="relative z-10 bg-white bg-opacity-10 backdrop-blur-md border-b border-white border-opacity-20">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
@@ -110,8 +110,8 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
                 </svg>
                 Back to Menu
               </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-blue-200 rounded-lg flex items-center justify-center">
-                <span className="text-[#32027a] text-xl font-bold">C</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-primary text-xl font-bold">C</span>
               </div>
               <button
                 onClick={() => onHome()}
@@ -191,7 +191,7 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
           </div>
           
           {/* Tutorial Information Section */}
-          <div className="mb-6 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg border border-white border-opacity-20 p-6">
+          <div className="mb-6 bg-white bg-opacity-5 backdrop-blur-sm rounded-lg border border-white border-opacity-20 p-6">
             <div className="flex items-center space-x-3 mb-6">
               <div className="text-3xl text-white">
                 <FontAwesomeIcon icon={faSearch} />
@@ -200,7 +200,7 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 bg-white bg-opacity-10 rounded-lg backdrop-blur-sm">
+              <div className="p-4 bg-white bg-opacity-5 rounded-lg backdrop-blur-sm">
                 <h3 className="text-lg font-semibold text-white mb-3">Verification Process:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-blue-100">
                   <li>Configure your Blockfrost API key in the settings above</li>
@@ -212,7 +212,7 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-green-50 bg-opacity-20 rounded-lg border border-green-200 border-opacity-30 backdrop-blur-sm">
+                <div className="p-4 bg-green-50 bg-opacity-10 rounded-lg border border-green-200 border-opacity-30 backdrop-blur-sm">
                   <h4 className="text-white font-semibold mb-2">
                     <FontAwesomeIcon icon={faCheckCircle} className="mr-2 text-green-200" />
                     Valid Certificate
@@ -222,7 +222,7 @@ const VerifyCertificatePage = ({ onBack, onHome }) => {
                   </p>
                 </div>
                 
-                <div className="p-4 bg-red-50 bg-opacity-20 rounded-lg border border-red-200 border-opacity-30 backdrop-blur-sm">
+                <div className="p-4 bg-red-50 bg-opacity-10 rounded-lg border border-red-200 border-opacity-30 backdrop-blur-sm">
                   <h4 className="text-white font-semibold mb-2">
                     <FontAwesomeIcon icon={faShieldAlt} className="mr-2 text-red-200" />
                     Invalid Certificate

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCertificate, faLink, faWallet, faShield, faBolt, faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { faCertificate, faLink, faWallet, faShield, faBolt, faGlobe, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 
-const Home = ({ onGetStarted }) => {
+const Home = ({ onGetStarted, onTutorial }) => {
   const [currentSection, setCurrentSection] = useState(0);
   const [currentLight, setCurrentLight] = useState(0);
   const [lightOpacity, setLightOpacity] = useState(0);
@@ -27,7 +27,7 @@ const Home = ({ onGetStarted }) => {
       subtitle: "Secure Your Documents",
       description: "CertiFy revolutionizes document verification by creating tamper-proof digital certificates on the blockchain. Issue, store, and verify certificates with unmatched security and transparency.",
       icon: faCertificate,
-      gradient: "from-[#32027a] to-[#0053d0]"
+      gradient: "from-primary to-secondary"
     },
     {
       id: 1,
@@ -35,7 +35,7 @@ const Home = ({ onGetStarted }) => {
       subtitle: "Powered by Cardano",
       description: "Built on Cardano's robust blockchain infrastructure, ensuring immutable record-keeping, decentralized verification, and enterprise-grade security for all your certificates.",
       icon: faLink,
-      gradient: "from-[#0053d0] to-[#32027a]"
+      gradient: "from-secondary to-primary-light"
     },
     {
       id: 2,
@@ -43,7 +43,7 @@ const Home = ({ onGetStarted }) => {
       subtitle: "Seamless Web3 Experience",
       description: "Connect your Cardano wallet to interact with the blockchain. Secure, user-friendly, and compatible with popular wallets like Lace, Nami, and Eternl.",
       icon: faWallet,
-      gradient: "from-[#32027a] via-[#0053d0] to-[#32027a]"
+      gradient: "from-primary via-secondary to-primary-light"
     }
   ];
 
@@ -97,7 +97,7 @@ const Home = ({ onGetStarted }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-primary-light relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {/* Single animated light */}
@@ -110,7 +110,7 @@ const Home = ({ onGetStarted }) => {
               left: light.left,
               bottom: light.bottom,
               right: light.right,
-              opacity: index === currentLight ? lightOpacity * 0.5 : 0, // More visible at 3.5% max
+              opacity: index === currentLight ? lightOpacity * 0.3 : 0, // More visible at 3.5% max
               transform: `${light.transform || ''} scale(${index === currentLight ? 1 : 0.8})`,
             }}
           />
@@ -122,8 +122,8 @@ const Home = ({ onGetStarted }) => {
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-blue-200 rounded-lg flex items-center justify-center">
-                <span className="text-[#32027a] text-xl font-bold">C</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-primary text-xl font-bold">C</span>
               </div>
               <h1 className="text-2xl font-bold text-white">CertiFy</h1>
             </div>
@@ -199,10 +199,10 @@ const Home = ({ onGetStarted }) => {
         <div className="text-center">
           <button
             onClick={onGetStarted}
-            className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-[#32027a] bg-white rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-500 hover:bg-blue-50"
+            className="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-primary bg-white rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-500 hover:bg-blue-50"
           >
             <span className="relative z-10 transition-all duration-300 group-hover:text-white">Get Started</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#32027a] to-[#0053d0] rounded-2xl opacity-0 group-hover:opacity-90 transition-all duration-500 transform scale-95 group-hover:scale-100"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-2xl opacity-0 group-hover:opacity-90 transition-all duration-500 transform scale-95 group-hover:scale-100"></div>
             <svg
               className="ml-3 w-6 h-6 transform group-hover:translate-x-2 transition-all duration-500 relative z-10 group-hover:text-white"
               fill="none"
@@ -212,6 +212,17 @@ const Home = ({ onGetStarted }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </button>
+          
+          {/* Get Help Button */}
+          <div className="mt-6">
+            <button
+              onClick={onTutorial}
+              className="inline-flex items-center space-x-2 text-white hover:text-blue-200 transition-colors duration-300 px-6 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 border border-white border-opacity-30 hover:border-opacity-50"
+            >
+              <FontAwesomeIcon icon={faQuestionCircle} className="text-lg" />
+              <span className="font-medium">Get Help</span>
+            </button>
+          </div>
         </div>
       </main>
 

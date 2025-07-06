@@ -109,7 +109,7 @@ const CustomWalletConnect = ({ onConnected, onDisconnected, onError }) => {
 
   if (availableWallets.length === 0) {
     return (
-      <div className="text-center p-4 bg-yellow-500 bg-opacity-5 backdrop-blur-sm border border-yellow-200 border-opacity-30 rounded-lg">
+      <div className="text-center p-4 bg-yellow-500 bg-opacity-0 backdrop-blur-sm border border-yellow-200 border-opacity-5 rounded-lg">
         <p className="text-white font-medium">No Cardano wallets detected</p>
         <p className="text-blue-100 text-sm mt-1">
           Please install a Cardano wallet extension like{' '}

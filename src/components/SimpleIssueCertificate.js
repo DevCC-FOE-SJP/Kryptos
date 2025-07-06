@@ -79,7 +79,7 @@ const SimpleIssueCertificate = ({ onStatusUpdate, walletApi, config }) => {
             type="file"
             accept=".pdf"
             onChange={handleFileSelect}
-            className="w-full p-3 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-md focus:ring-2 focus:ring-white focus:ring-opacity-50 text-white placeholder-blue-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#32027a] hover:file:bg-blue-50"
+            className="w-full p-3 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-md focus:ring-2 focus:ring-white focus:ring-opacity-50 text-white placeholder-blue-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-primary hover:file:bg-blue-50"
           />
           {selectedFile && (
             <div className="mt-2 text-sm text-green-200 bg-green-500 bg-opacity-20 p-2 rounded backdrop-blur-sm">
@@ -95,7 +95,7 @@ const SimpleIssueCertificate = ({ onStatusUpdate, walletApi, config }) => {
           className={`w-full py-3 px-4 rounded-md font-medium transition-all backdrop-blur-sm ${
             !isConnected || !isConfigured || !selectedFile || isLoading
               ? 'bg-gray-500 bg-opacity-30 text-gray-300 cursor-not-allowed border border-gray-300 border-opacity-30'
-              : 'bg-blue-600 bg-opacity-80 text-white hover:bg-opacity-100 border border-blue-400 border-opacity-50 hover:border-opacity-80'
+              : 'bg-secondary bg-opacity-80 text-white hover:bg-opacity-100 border border-blue-400 border-opacity-50 hover:border-opacity-80'
           }`}
         >
           {isLoading ? 'Processing...' : 'Issue Certificate on Blockchain'}

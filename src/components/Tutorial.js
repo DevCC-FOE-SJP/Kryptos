@@ -302,7 +302,7 @@ const Tutorial = ({ onComplete, onHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-primary-light relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {/* Single animated light */}
@@ -315,7 +315,7 @@ const Tutorial = ({ onComplete, onHome }) => {
               left: light.left,
               bottom: light.bottom,
               right: light.right,
-              opacity: index === currentLight ? lightOpacity * 0.5 : 0, // More visible at 3.5% max
+              opacity: index === currentLight ? lightOpacity * 0.3 : 0, // More visible at 3.5% max
               transform: `${light.transform || ''} scale(${index === currentLight ? 1 : 0.8})`,
             }}
           />
@@ -330,8 +330,8 @@ const Tutorial = ({ onComplete, onHome }) => {
               onClick={() => onHome ? onHome() : onComplete()}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-blue-200 rounded-lg flex items-center justify-center">
-                <span className="text-[#32027a] text-xl font-bold">C</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-primary text-xl font-bold">C</span>
               </div>
               <h1 className="text-2xl font-bold text-white">CertiFy</h1>
             </button>
@@ -352,7 +352,7 @@ const Tutorial = ({ onComplete, onHome }) => {
                 <div key={step.id} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                     index <= currentStep 
-                      ? 'bg-white text-[#32027a] shadow-lg' 
+                      ? 'bg-white text-primary shadow-lg' 
                       : 'bg-white bg-opacity-30 text-white'
                   }`}>
                     {index + 1}
@@ -430,8 +430,8 @@ const Tutorial = ({ onComplete, onHome }) => {
                 disabled={isTransitioning}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform ${
                   currentStep === steps.length - 1 
-                    ? 'bg-gradient-to-r from-white to-blue-100 text-[#32027a] hover:from-blue-50 hover:to-blue-200 hover:scale-110 shadow-lg hover:shadow-2xl' 
-                    : 'bg-white text-[#32027a] hover:bg-blue-50 hover:scale-105'
+                    ? 'bg-gradient-to-r from-white to-blue-100 text-primary hover:from-blue-50 hover:to-blue-200 hover:scale-110 shadow-lg hover:shadow-2xl' 
+                    : 'bg-white text-primary hover:bg-blue-50 hover:scale-105'
                 } ${isTransitioning ? 'cursor-not-allowed opacity-75' : ''}`}
               >
                 <span>{currentStep === steps.length - 1 ? 'Start' : 'Next'}</span>

@@ -96,7 +96,7 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
             type="file"
             accept=".pdf"
             onChange={handleFileSelect}
-            className="w-full p-3 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-md focus:ring-2 focus:ring-white focus:ring-opacity-50 text-white placeholder-blue-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#32027a] hover:file:bg-blue-50"
+            className="w-full p-3 bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-md focus:ring-2 focus:ring-white focus:ring-opacity-50 text-white placeholder-blue-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-primary hover:file:bg-blue-50"
           />
           {selectedFile && (
             <div className="mt-2 text-sm text-green-200 bg-green-500 bg-opacity-20 p-2 rounded backdrop-blur-sm">
@@ -137,7 +137,7 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
                 <div><strong>Issued:</strong> {verificationResult.issuedAt}</div>
                 <div><strong>File:</strong> {verificationResult.fileName}</div>
                 <div><strong>Issuer:</strong> {verificationResult.issuer}</div>
-                <div className="text-xs bg-blue-500 bg-opacity-20 text-blue-100 p-2 rounded mt-2 backdrop-blur-sm border border-blue-200 border-opacity-30">
+                <div className="text-xs bg-secondary bg-opacity-20 text-blue-100 p-2 rounded mt-2 backdrop-blur-sm border border-blue-200 border-opacity-30">
                   🔗 <strong>Blockchain Verified:</strong> This certificate was verified using real Cardano blockchain data.
                 </div>
               </div>

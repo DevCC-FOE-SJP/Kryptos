@@ -83,7 +83,7 @@ const MainMenu = ({ onSelectOption, onHome }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-primary-light relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {/* Single animated light */}
@@ -96,7 +96,7 @@ const MainMenu = ({ onSelectOption, onHome }) => {
               left: light.left,
               bottom: light.bottom,
               right: light.right,
-              opacity: index === currentLight ? lightOpacity * 0.5 : 0,
+              opacity: index === currentLight ? lightOpacity * 0.3 : 0,
               transform: `${light.transform || ''} scale(${index === currentLight ? 1 : 0.8})`,
             }}
           />
@@ -111,8 +111,8 @@ const MainMenu = ({ onSelectOption, onHome }) => {
               onClick={() => onHome()}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-blue-200 rounded-lg flex items-center justify-center">
-                <span className="text-[#32027a] text-xl font-bold">C</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-primary text-xl font-bold">C</span>
               </div>
               <h1 className="text-2xl font-bold text-white">CertiFy</h1>
             </button>

@@ -187,13 +187,16 @@ function App() {
 
   return (
     <MeshProvider network={appConfig.network || "preprod"}>
-      <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-[#32027a] via-[#0053d0] to-[#32027a]">
+      <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-primary via-secondary to-primary-light">
         {/* Home View */}
         <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
           currentView === 'home' && !isTransitioning ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}>
           <div className="w-full h-full overflow-y-auto">
-            <Home onGetStarted={handleGetStarted} />
+            <Home 
+              onGetStarted={handleGetStarted}
+              onTutorial={() => transitionToView('tutorial', 'forward')}
+            />
           </div>
         </div>
         
@@ -274,7 +277,7 @@ function App() {
                       onClick={() => transitionToView('home', 'backward')}
                       className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#32027a] to-[#0053d0] rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                         <span className="text-white text-xl font-bold">C</span>
                       </div>
                       <div>
