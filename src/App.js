@@ -326,7 +326,7 @@ function App() {
             <div className="px-4 py-6 sm:px-0">
               {/* Configuration Panel */}
               <div className="mb-6">
-                <ConfigurationPanel onConfigUpdate={handleConfigUpdate} />
+                <ConfigurationPanel />
               </div>
               
               {/* Main content grid */}

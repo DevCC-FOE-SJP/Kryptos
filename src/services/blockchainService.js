@@ -13,6 +13,16 @@ class BlockchainService {
     this.cleanupDemoData();
   }
 
+  getConfig() {
+    const network = localStorage.getItem('cardano_network') || this.defaultNetwork;
+    const apiKey = localStorage.getItem(`blockfrost_api_key_${network}`);
+    return {
+      network: network,
+      apiKey: apiKey,
+      baseUrl: this.getBaseUrl(network),
+    };
+  }
+
   
 
   getBaseUrl(network) {
@@ -105,7 +115,7 @@ class BlockchainService {
       console.log('Initializing Lucid with network:', lucidNetwork);
       
       const lucid = await Lucid.new(
-        new Blockfrost(serviceConfig.baseUrl, serviceConfig.apiKey),
+        new Blockfrost(serviceConfig.baseUrl, 'placeholder-api-key'),
         lucidNetwork
       );
 
@@ -154,12 +164,12 @@ class BlockchainService {
       // Create metadata
       const metadata = {
         674: {
-          certificate_hash: fileHash,
-          file_name: fileName,
-          issued_at: new Date().toISOString(),
-          issuer: 'CertiFy - Certificate Verifier App',
-          version: '1.0',
-          network: config.network
+          'msg': [
+            `CertiFy: ${fileHash}`,
+            `FileName: ${fileName}`,
+            `IssuedAt: ${new Date().toISOString()}`,
+            `Network: ${serviceConfig.network}`
+          ]
         }
       };
 
@@ -229,11 +239,12 @@ class BlockchainService {
         
         // Initialize Lucid to use address utilities
         try {
-          const lucidNetwork = config.network === 'mainnet' ? 'Mainnet' : 
-                              config.network === 'preview' ? 'Preview' : 'Preprod';
+          const serviceConfig = this.getConfig();
+          const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
+                              serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
           
           const lucid = await Lucid.new(
-            new Blockfrost(config.baseUrl, config.apiKey),
+            new Blockfrost(serviceConfig.baseUrl, 'placeholder-api-key'),
             lucidNetwork
           );
           
@@ -277,7 +288,7 @@ class BlockchainService {
               issuer: metadata['674'].issuer,
               blockTime: tx.block_time,
               blockHeight: tx.block_height,
-              network: metadata['674'].network || config.network
+              network: metadata['674'].network || this.getConfig().network
             };
           }
         } catch (metadataError) {

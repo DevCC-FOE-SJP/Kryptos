@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-const ConfigurationPanel = ({ onConfigUpdate }) => {
+const ConfigurationPanel = () => {
   const [config, setConfig] = useState({
     network: localStorage.getItem('cardano_network') || 'preprod'
   });
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
-    // Update parent component
-    onConfigUpdate && onConfigUpdate(config);
-  }, [config, onConfigUpdate]);
+  
 
   const handleConfigChange = (field, value) => {
     const newConfig = { ...config, [field]: value };
@@ -91,3 +88,10 @@ const ConfigurationPanel = ({ onConfigUpdate }) => {
               <li>Get test ADA from a <a href="https://docs.cardano.org/cardano-testnet/tools/faucet/" target="_blank" rel="noopener noreferrer" className="underline text-white hover:text-blue-200">testnet faucet</a></li>
             </ol>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ConfigurationPanel;
