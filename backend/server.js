@@ -9,11 +9,16 @@ const PORT = process.env.PORT || 5000;
 const BLOCKFROST_API_KEY = process.env.BLOCKFROST_API_KEY;
 
 app.use(cors({
-  origin: 'http://localhost:3000'
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json());
 
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors());
 app.post('/api/blockfrost', async (req, res) => {
   const { endpoint, method, body, params } = req.body;
 

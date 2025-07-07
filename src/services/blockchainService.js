@@ -69,7 +69,7 @@ class BlockchainService {
   }
 
   async makeBlockfrostRequest(endpoint, method = 'get', body = null, params = null, contentType = 'application/json') {
-    const backendUrl = 'http://localhost:5000/api/blockfrost'; // Your backend proxy URL
+    const backendUrl = 'http://localhost:5001/api/blockfrost'; // Your backend proxy URL
 
     try {
       const response = await fetch(backendUrl, {
