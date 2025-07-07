@@ -286,25 +286,23 @@ class BlockchainService {
         throw new Error('No UTXOs found in wallet. Please ensure your wallet has some test ADA.');
       }
 
-      // Create metadata
+      // Create simplified metadata to avoid encoding issues
       const metadata = {
-        674: {
-          'msg': [
-            `CertiFy: ${fileHash}`,
-            `FileName: ${fileName}`,
-            `IssuedAt: ${new Date().toISOString()}`,
-            `Network: ${serviceConfig.network}`
-          ]
-        }
+        'msg': [
+          `CertiFy: ${fileHash}`,
+          `FileName: ${fileName}`,
+          `IssuedAt: ${new Date().toISOString()}`,
+          `Network: ${serviceConfig.network}`
+        ]
       };
 
-      console.log('Building transaction with metadata:', metadata);
+      console.log('Building transaction with simplified metadata:', metadata);
 
-      // Build transaction with Lucid - use string instead of BigInt to avoid length issues
+      // Build transaction with Lucid
       const tx = await lucid
         .newTx()
-        .payToAddress(address, { lovelace: "2000000" }) // Send 2 ADA to self (string format)
-        .attachMetadata(674, metadata[674])
+        .payToAddress(address, { lovelace: BigInt(2000000) }) // Send 2 ADA to self
+        .attachMetadata(674, metadata)
         .complete();
 
       console.log('Transaction built, signing...');
@@ -314,14 +312,8 @@ class BlockchainService {
       
       console.log('Transaction signed, submitting...');
 
-      // Submit transaction
-      const txHash = await this.makeBlockfrostRequest(
-        '/tx/submit',
-        'post',
-        signedTx.toCbor(),
-        null,
-        'application/cbor'
-      );
+      // Submit transaction using Lucid's built-in submit method
+      const txHash = await signedTx.submit();
       
       console.log('Transaction submitted with hash:', txHash);
 
