@@ -6,7 +6,7 @@ const SimpleIssueCertificate = ({ onStatusUpdate, walletApi, config }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const isConnected = !!walletApi;
-  const isConfigured = config && config.isValid;
+  const isConfigured = true;
 
   const handleFileSelect = async (event) => {
     const file = event.target.files[0];

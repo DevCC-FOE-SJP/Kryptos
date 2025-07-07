@@ -7,7 +7,7 @@ const SimpleVerifyCertificate = ({ onStatusUpdate, walletAddress, config, wallet
   const [verificationResult, setVerificationResult] = useState(null);
 
   const isConnected = !!walletAddress;
-  const isConfigured = config && config.isValid;
+  const isConfigured = true;
 
   const handleFileSelect = async (event) => {
     const file = event.target.files[0];
