@@ -2,6 +2,12 @@
 
 A cutting-edge blockchain-enabled web application built with React and cryptographic tools for the Unihack competition. This project leverages modern web technologies with crypto capabilities and Cardano integration through MeshSDK.
 
+## 🚀 Team Setup (New Members Start Here!)
+
+**👥 If you're a new team member, follow the [TEAM_SETUP.md](TEAM_SETUP.md) guide for complete setup instructions.**
+
+**⚡ Quick setup script:** `./setup.sh` (then follow the prompts)
+
 ## ✨ Features
 
 - 🔐 **Cryptographic Operations** - Built-in crypto functionality with browser-compatible polyfills
