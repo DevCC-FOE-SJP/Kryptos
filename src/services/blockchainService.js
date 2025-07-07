@@ -79,7 +79,7 @@ class BlockchainService {
 
       async submitTx(tx) {
         const txData = typeof tx === 'string' ? tx : tx.to_hex ? tx.to_hex() : tx;
-        return await blockchainService.makeBlockfrostRequest('/tx/submit', 'post', txData, null, 'application/cbor');
+        return await self.makeBlockfrostRequest('/tx/submit', 'post', txData, null, 'application/cbor');
       }
     };
   }
@@ -201,7 +201,7 @@ class BlockchainService {
 
       let lucid;
       try {
-        console.log('Testing basic Lucid initialization first...');
+        console.log('Initializing Lucid with proxy provider...');
         console.log('Service config:', serviceConfig);
         console.log('Lucid network value:', lucidNetwork);
         
@@ -210,18 +210,14 @@ class BlockchainService {
           throw new Error('Lucid network is undefined. Check network configuration.');
         }
         
-        // First, try with the basic Blockfrost provider to see if the issue is with our proxy
-        console.log('Creating basic Blockfrost provider...');
-        const blockfrost = new Blockfrost(
-          'https://cardano-preprod.blockfrost.io/api/v0',
-          'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW' // Use real API key for testing
-        );
+        // Use our proxy provider directly
+        console.log('Creating proxy Blockfrost provider...');
+        const blockfrost = new this.ProxyBlockfrost(serviceConfig.baseUrl);
         
-        console.log('Basic Blockfrost instance created:', blockfrost);
+        console.log('Proxy Blockfrost instance created:', blockfrost);
 
-        console.log('About to call Lucid.new with basic Blockfrost...');
+        console.log('About to call Lucid.new with proxy Blockfrost...');
         
-        // Add detailed error catching around Lucid.new
         try {
           console.log('Calling Lucid.new...');
           lucid = await Lucid.new(blockfrost, lucidNetwork);
@@ -286,23 +282,23 @@ class BlockchainService {
         throw new Error('No UTXOs found in wallet. Please ensure your wallet has some test ADA.');
       }
 
-      // Create simplified metadata to avoid encoding issues
+      // Create simplified metadata with ASCII-only characters to avoid encoding issues
       const metadata = {
-        'msg': [
-          `CertiFy: ${fileHash}`,
-          `FileName: ${fileName}`,
-          `IssuedAt: ${new Date().toISOString()}`,
-          `Network: ${serviceConfig.network}`
-        ]
+        674: {
+          'hash': fileHash,
+          'file': fileName.replace(/[^\x00-\x7F]/g, ""), // Remove non-ASCII characters
+          'date': new Date().toISOString().split('T')[0], // Just date, no time
+          'app': 'CertiFy'
+        }
       };
 
       console.log('Building transaction with simplified metadata:', metadata);
 
-      // Build transaction with Lucid
+      // Build transaction with Lucid - simplified version
       const tx = await lucid
         .newTx()
-        .payToAddress(address, { lovelace: BigInt(2000000) }) // Send 2 ADA to self
-        .attachMetadata(674, metadata)
+        .payToAddress(address, { lovelace: BigInt(1500000) }) // Send 1.5 ADA to self
+        .attachMetadata(674, metadata[674])
         .complete();
 
       console.log('Transaction built, signing...');
