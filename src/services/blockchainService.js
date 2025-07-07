@@ -497,45 +497,48 @@ class BlockchainService {
 
       // Check each transaction for matching metadata
       for (const tx of transactions) {
-        try {        // Use environment variable for API key
-        const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
-        if (!apiKey) {
-          console.log(`No API key available for transaction ${tx.tx_hash}`);
-          continue;
-        }
-        
-        const metadataResponse = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/txs/${tx.tx_hash}/metadata`, {
-          headers: {
-            'project_id': apiKey
+        try {
+          // Use environment variable for API key
+          const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+          if (!apiKey) {
+            console.log(`No API key available for transaction ${tx.tx_hash}`);
+            continue;
           }
-        });
-        
-        let metadata = null;
-        if (metadataResponse.ok) {
-          metadata = await metadataResponse.json();
-          console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
           
-          // Look for certificate metadata in label 674
-          if (metadata && Array.isArray(metadata)) {
-            const certMetadata = metadata.find(m => m.label === '674');
-            if (certMetadata && certMetadata.json_metadata) {
-              console.log('Found 674 metadata:', certMetadata.json_metadata);
-              
-              const metadataObj = certMetadata.json_metadata;
-              
-              // Check both new format (hash field) and old format (certificate_hash field)
-              let hashToCheck = null;
-              if (metadataObj.hash) {
-                hashToCheck = metadataObj.hash;
-                console.log('Found hash in new format:', hashToCheck);
-              } else if (metadataObj.certificate_hash) {
-                hashToCheck = metadataObj.certificate_hash;
-                console.log('Found hash in old format:', hashToCheck);
-              }
-              
-              if (hashToCheck) {
-                console.log('Searching for hash:', fileHash);
-                console.log('Hash in metadata:', hashToCheck);                  // Check both full hash and truncated hash
+          const metadataResponse = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/txs/${tx.tx_hash}/metadata`, {
+            headers: {
+              'project_id': apiKey
+            }
+          });
+          
+          let metadata = null;
+          if (metadataResponse.ok) {
+            metadata = await metadataResponse.json();
+            console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
+            
+            // Look for certificate metadata in label 674
+            if (metadata && Array.isArray(metadata)) {
+              const certMetadata = metadata.find(m => m.label === '674');
+              if (certMetadata && certMetadata.json_metadata) {
+                console.log('Found 674 metadata:', certMetadata.json_metadata);
+                
+                const metadataObj = certMetadata.json_metadata;
+                
+                // Check both new format (hash field) and old format (certificate_hash field)
+                let hashToCheck = null;
+                if (metadataObj.hash) {
+                  hashToCheck = metadataObj.hash;
+                  console.log('Found hash in new format:', hashToCheck);
+                } else if (metadataObj.certificate_hash) {
+                  hashToCheck = metadataObj.certificate_hash;
+                  console.log('Found hash in old format:', hashToCheck);
+                }
+                
+                if (hashToCheck) {
+                  console.log('Searching for hash:', fileHash);
+                  console.log('Hash in metadata:', hashToCheck);
+                  
+                  // Check both full hash and truncated hash
                   const truncatedInputHash = fileHash.substring(0, 32);
                   
                   // More comprehensive hash matching
@@ -551,21 +554,49 @@ class BlockchainService {
                   console.log('Hash matches:', hashMatches);
                   
                   if (hashMatches) {
+                    // Extract additional metadata information with fallbacks
+                    const fileName = metadataObj.file || metadataObj.filename || metadataObj.name || 'Unknown File';
+                    const issuer = metadataObj.issuer || metadataObj.app || metadataObj.application || 'Unknown Issuer';
+                    
+                    // Format the issued date from block time
+                    let issuedAt = 'Unknown';
+                    if (tx.block_time) {
+                      const date = new Date(tx.block_time * 1000); // Convert Unix timestamp to milliseconds
+                      issuedAt = date.toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZoneName: 'short'
+                      });
+                    }
+                    
+                    console.log('Extracted metadata for display:');
+                    console.log('- File Name:', fileName);
+                    console.log('- Issuer:', issuer);
+                    console.log('- Issued At:', issuedAt);
+                    
                     return {
                       valid: true,
                       transactionHash: tx.tx_hash,
                       metadata: metadataObj,
                       blockTime: tx.block_time,
                       blockHeight: tx.block_height,
-                      network: this.getConfig().network
+                      network: this.getConfig().network,
+                      // Additional formatted fields for display
+                      fileName: fileName,
+                      issuer: issuer,
+                      issuedAt: issuedAt
                     };
                   }
+                }
               }
             }
+          } else {
+            console.log(`No metadata found for transaction ${tx.tx_hash}`);
           }
-        } else {
-          console.log(`No metadata found for transaction ${tx.tx_hash}`);
-        }
         } catch (metadataError) {
           console.log(`Error checking metadata for transaction ${tx.tx_hash}:`, metadataError);
           continue;
