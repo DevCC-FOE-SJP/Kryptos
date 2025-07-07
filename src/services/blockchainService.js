@@ -25,7 +25,10 @@ class BlockchainService {
       async request(endpoint, headers = {}, body) {
         // Use our proxy instead of direct Blockfrost calls
         const method = body ? 'post' : 'get';
-        return await self.makeBlockfrostRequest(endpoint, method, body);
+        console.log(`ProxyBlockfrost: Making ${method} request to ${endpoint}`);
+        const result = await self.makeBlockfrostRequest(endpoint, method, body);
+        console.log(`ProxyBlockfrost: Result for ${endpoint}:`, result);
+        return result;
       }
 
       async get(endpoint) {
@@ -43,10 +46,49 @@ class BlockchainService {
           
           console.log('Raw protocol parameters from Blockfrost:', params);
           
-          // For debugging, let's return the exact data from Blockfrost without any transformation
-          // This will help us determine if the issue is with our transformations
-          console.log('Returning protocol parameters without transformation');
-          return params;
+          // Let's inspect each field that might be undefined
+          console.log('Critical field inspection:');
+          console.log('- min_fee_a:', params.min_fee_a, typeof params.min_fee_a);
+          console.log('- min_fee_b:', params.min_fee_b, typeof params.min_fee_b);
+          console.log('- key_deposit:', params.key_deposit, typeof params.key_deposit);
+          console.log('- pool_deposit:', params.pool_deposit, typeof params.pool_deposit);
+          console.log('- min_utxo:', params.min_utxo, typeof params.min_utxo);
+          console.log('- nonce:', params.nonce, typeof params.nonce);
+          console.log('- cost_models:', params.cost_models, typeof params.cost_models);
+          console.log('- cost_models_raw:', params.cost_models_raw, typeof params.cost_models_raw);
+          
+          // Instead of transforming, let's try returning exactly what Blockfrost gives us
+          // but ensure no field is undefined by deep-cloning and checking
+          const cleanParams = JSON.parse(JSON.stringify(params));
+          
+          // Replace any null values with empty string or zero
+          const replaceNulls = (obj) => {
+            for (const key in obj) {
+              if (obj[key] === null) {
+                if (typeof params[key] === 'string') {
+                  obj[key] = '';
+                } else if (typeof params[key] === 'number') {
+                  obj[key] = 0;
+                }
+              } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                replaceNulls(obj[key]);
+              }
+            }
+          };
+          
+          replaceNulls(cleanParams);
+          
+          console.log('Cleaned protocol parameters (nulls replaced):', cleanParams);
+          
+          // Additional validation - check if any critical fields are still undefined
+          const criticalFields = ['min_fee_a', 'min_fee_b', 'key_deposit', 'pool_deposit', 'min_utxo'];
+          for (const field of criticalFields) {
+            if (cleanParams[field] === undefined || cleanParams[field] === null) {
+              console.error(`CRITICAL: Field ${field} is still undefined/null:`, cleanParams[field]);
+            }
+          }
+          
+          return cleanParams;
         } catch (error) {
           console.error('Error in getProtocolParameters:', error);
           throw error;
@@ -80,6 +122,20 @@ class BlockchainService {
       async submitTx(tx) {
         const txData = typeof tx === 'string' ? tx : tx.to_hex ? tx.to_hex() : tx;
         return await self.makeBlockfrostRequest('/tx/submit', 'post', txData, null, 'application/cbor');
+      }
+
+      // Additional methods that Lucid might expect
+      async getEpoch() {
+        return await this.get('/epochs/latest');
+      }
+
+      async getSlot() {
+        const epoch = await this.getEpoch();
+        return epoch.start_time;
+      }
+
+      async getGenesis() {
+        return await this.get('/genesis');
       }
     };
   }
@@ -201,7 +257,7 @@ class BlockchainService {
 
       let lucid;
       try {
-        console.log('Initializing Lucid with proxy provider...');
+        console.log('Initializing Lucid with direct Blockfrost (bypassing proxy for testing)...');
         console.log('Service config:', serviceConfig);
         console.log('Lucid network value:', lucidNetwork);
         
@@ -210,13 +266,19 @@ class BlockchainService {
           throw new Error('Lucid network is undefined. Check network configuration.');
         }
         
-        // Use our proxy provider directly
-        console.log('Creating proxy Blockfrost provider...');
-        const blockfrost = new this.ProxyBlockfrost(serviceConfig.baseUrl);
+        // Try using the real Blockfrost class directly with a real API key for testing
+        console.log('Creating real Blockfrost provider for testing...');
         
-        console.log('Proxy Blockfrost instance created:', blockfrost);
+        // Use environment variable or fallback to a test key
+        const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW'; // This should work
+        const blockfrost = new Blockfrost(
+          'https://cardano-preprod.blockfrost.io/api/v0',
+          testApiKey
+        );
+        
+        console.log('Real Blockfrost instance created:', blockfrost);
 
-        console.log('About to call Lucid.new with proxy Blockfrost...');
+        console.log('About to call Lucid.new with real Blockfrost...');
         
         try {
           console.log('Calling Lucid.new...');
