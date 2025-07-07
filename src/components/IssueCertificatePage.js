@@ -110,15 +110,14 @@ const IssueCertificatePage = ({ onBack, onHome }) => {
                 </svg>
                 Back to Menu
               </button>
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-xl font-bold">C</span>
+              <div className="flex items-center justify-center">
+                <img 
+                  src="https://i.postimg.cc/CL1bSS6P/Certi-Fy-logo-white.png" 
+                  alt="CertiFy Logo" 
+                  className="h-12 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => onHome()}
+                />
               </div>
-              <button
-                onClick={() => onHome()}
-                className="hover:opacity-80 transition-opacity"
-              >
-                <h1 className="text-2xl font-bold text-white">CertiFy</h1>
-              </button>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex flex-col items-end gap-2">

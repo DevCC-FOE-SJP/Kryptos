@@ -2,18 +2,43 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" id="favicon" href="https://i.postimg.cc/6QNDDj50/File-icon-blue.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
       content="Web site created using create-react-app"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" id="apple-icon" href="https://i.postimg.cc/6QNDDj50/File-icon-blue.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      // Update apple touch icon as well
+      function updateIcons() {
+        const favicon = document.getElementById('favicon');
+        const appleIcon = document.getElementById('apple-icon');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (prefersDark) {
+          favicon.href = 'https://i.postimg.cc/zGhs2Z5v/File-icon-white.png'; // White icon for dark theme
+          appleIcon.href = 'https://i.postimg.cc/zGhs2Z5v/File-icon-white.png';
+        } else {
+          favicon.href = 'https://i.postimg.cc/6QNDDj50/File-icon-blue.png'; // Blue icon for light theme
+          appleIcon.href = 'https://i.postimg.cc/6QNDDj50/File-icon-blue.png';
+        }
+      }
+      
+      // Update icons immediately
+      updateIcons();
+      
+      // Listen for theme changes
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateIcons);
+      }
+    </script>
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.

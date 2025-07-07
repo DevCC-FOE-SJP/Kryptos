@@ -265,20 +265,13 @@ function App() {
                     </button>
                     <button
                       onClick={() => transitionToView('home', 'backward')}
-                      className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                      className="flex items-center justify-center hover:opacity-80 transition-opacity"
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                        <span className="text-white text-xl font-bold">C</span>
-                      </div>
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900">CertiFy</h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Secure certificate issuance and verification on Cardano blockchain
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          v1.0 - Real Blockchain Implementation
-                        </p>
-                      </div>
+                      <img 
+                        src="https://i.postimg.cc/CL1bSS6P/Certi-Fy-logo-white.png" 
+                        alt="CertiFy Logo" 
+                        className="h-12 w-auto object-contain"
+                      />
                     </button>
                   </div>
                 <div className="flex flex-col items-end gap-2">
