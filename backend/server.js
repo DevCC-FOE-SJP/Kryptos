@@ -20,7 +20,7 @@ app.use(express.json());
 // Handle preflight OPTIONS requests for all routes
 app.options('*', cors());
 app.post('/api/blockfrost', async (req, res) => {
-  const { endpoint, method, body, params } = req.body;
+  const { endpoint, method, body, params, contentType } = req.body;
 
   if (!endpoint) {
     return res.status(400).json({ error: 'Blockfrost endpoint is required.' });
@@ -35,10 +35,11 @@ app.post('/api/blockfrost', async (req, res) => {
     let response;
     const headers = {
       'project_id': BLOCKFROST_API_KEY,
-      'Content-Type': 'application/json'
+      'Content-Type': contentType || 'application/json'
     };
 
     const url = `${blockfrostBaseUrl}${endpoint}`;
+    console.log(`Proxying ${method.toUpperCase()} request to:`, url);
 
     switch (method.toLowerCase()) {
       case 'get':
@@ -49,6 +50,13 @@ app.post('/api/blockfrost', async (req, res) => {
         break;
       default:
         return res.status(405).json({ error: 'Method not allowed.' });
+    }
+
+    console.log(`Blockfrost response status: ${response.status}`);
+    
+    // Log protocol parameters specifically
+    if (endpoint.includes('parameters')) {
+      console.log('Protocol parameters response:', JSON.stringify(response.data, null, 2));
     }
 
     res.json(response.data);

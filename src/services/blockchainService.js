@@ -12,45 +12,85 @@ class BlockchainService {
     // Clean up any legacy demo data on initialization
     this.cleanupDemoData();
 
-    // Define ProxyBlockfrost as a class property
+    // Define ProxyBlockfrost as a class property that implements Lucid's Blockfrost interface
+    // This class mimics the original Blockfrost class but routes through our proxy
+    const self = this; // Store reference to this instance
     this.ProxyBlockfrost = class {
-      constructor(baseUrl) {
-        this.baseUrl = baseUrl;
+      constructor(baseUrl, projectId) {
+        this.baseUrl = baseUrl || 'http://localhost:5001/api/blockfrost';
+        this.projectId = projectId || 'proxy';
+        this.url = 'https://cardano-preprod.blockfrost.io/api/v0'; // Lucid expects this
+      }
+
+      async request(endpoint, headers = {}, body) {
+        // Use our proxy instead of direct Blockfrost calls
+        const method = body ? 'post' : 'get';
+        return await self.makeBlockfrostRequest(endpoint, method, body);
       }
 
       async get(endpoint) {
-        return await blockchainService.makeBlockfrostRequest(endpoint, 'get');
+        return await this.request(endpoint);
       }
 
       async post(endpoint, body) {
-        return await blockchainService.makeBlockfrostRequest(endpoint, 'post', body);
+        return await this.request(endpoint, {}, body);
       }
 
+      // This is the critical method that Lucid calls during initialization
       async getProtocolParameters() {
-        return await this.get('/epochs/latest/parameters');
+        try {
+          const params = await this.get('/epochs/latest/parameters');
+          
+          console.log('Raw protocol parameters from Blockfrost:', params);
+          
+          // For debugging, let's return the exact data from Blockfrost without any transformation
+          // This will help us determine if the issue is with our transformations
+          console.log('Returning protocol parameters without transformation');
+          return params;
+        } catch (error) {
+          console.error('Error in getProtocolParameters:', error);
+          throw error;
+        }
       }
 
       async getUtxos(address) {
         return await this.get(`/addresses/${address}/utxos`);
       }
 
+      async getUtxosWithUnit(address, unit) {
+        return await this.get(`/addresses/${address}/utxos/${unit}`);
+      }
+
       async getTx(txHash) {
         return await this.get(`/txs/${txHash}`);
       }
 
-      async submitTx(txCbor) {
-        return await this.post('/tx/submit', txCbor);
+      async getTxUtxos(txHash) {
+        return await this.get(`/txs/${txHash}/utxos`);
+      }
+
+      async getAddressUtxos(address, page = 1, count = 100, order = 'asc') {
+        return await this.get(`/addresses/${address}/utxos?page=${page}&count=${count}&order=${order}`);
+      }
+
+      async getDatum(datumHash) {
+        return await this.get(`/scripts/datum/${datumHash}`);
+      }
+
+      async submitTx(tx) {
+        const txData = typeof tx === 'string' ? tx : tx.to_hex ? tx.to_hex() : tx;
+        return await blockchainService.makeBlockfrostRequest('/tx/submit', 'post', txData, null, 'application/cbor');
       }
     };
   }
 
   getConfig() {
     const network = localStorage.getItem('cardano_network') || this.defaultNetwork;
-    const apiKey = localStorage.getItem(`blockfrost_api_key_${network}`);
+    const apiKey = null; // Not needed for proxy
     return {
       network: network,
       apiKey: apiKey,
-      baseUrl: this.getBaseUrl(network),
+      baseUrl: 'http://localhost:5001/api/blockfrost', // Proxy URL instead of Blockfrost URL
     };
   }
 
@@ -139,18 +179,72 @@ class BlockchainService {
 
       const serviceConfig = this.getConfig();
       
-      // Initialize Lucid with Blockfrost
-      const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
-                          serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
+      console.log('Service config:', serviceConfig);
       
+      // Initialize Lucid with Blockfrost
+      let lucidNetwork;
+      switch (serviceConfig.network) {
+        case 'mainnet':
+          lucidNetwork = 'Mainnet';
+          break;
+        case 'preview':
+          lucidNetwork = 'Preview';
+          break;
+        case 'preprod':
+        default:
+          lucidNetwork = 'Preprod';
+          break;
+      }
+      
+      console.log('Service config network:', serviceConfig.network);
       console.log('Initializing Lucid with network:', lucidNetwork);
 
-      const lucid = await Lucid.new(
-        new this.ProxyBlockfrost(serviceConfig.baseUrl),
-        lucidNetwork
-      );
+      let lucid;
+      try {
+        console.log('Testing basic Lucid initialization first...');
+        console.log('Service config:', serviceConfig);
+        console.log('Lucid network value:', lucidNetwork);
+        
+        // Validate that lucidNetwork is not undefined
+        if (!lucidNetwork) {
+          throw new Error('Lucid network is undefined. Check network configuration.');
+        }
+        
+        // First, try with the basic Blockfrost provider to see if the issue is with our proxy
+        console.log('Creating basic Blockfrost provider...');
+        const blockfrost = new Blockfrost(
+          'https://cardano-preprod.blockfrost.io/api/v0',
+          'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW' // Use real API key for testing
+        );
+        
+        console.log('Basic Blockfrost instance created:', blockfrost);
 
-      console.log('Lucid initialized successfully');
+        console.log('About to call Lucid.new with basic Blockfrost...');
+        
+        // Add detailed error catching around Lucid.new
+        try {
+          console.log('Calling Lucid.new...');
+          lucid = await Lucid.new(blockfrost, lucidNetwork);
+          console.log('Lucid.new completed successfully');
+        } catch (lucidNewError) {
+          console.error('Detailed error in Lucid.new:', lucidNewError);
+          console.error('Error name:', lucidNewError.name);
+          console.error('Error message:', lucidNewError.message);
+          console.error('Error stack:', lucidNewError.stack);
+          
+          // Log the parameters we passed
+          console.error('Blockfrost parameter:', blockfrost);
+          console.error('Network parameter:', lucidNetwork);
+          console.error('Network type:', typeof lucidNetwork);
+          
+          throw lucidNewError;
+        }
+        console.log('Lucid initialized successfully');
+      } catch (lucidError) {
+        console.error('Error initializing Lucid:', lucidError);
+        console.error('Lucid error stack:', lucidError.stack);
+        throw new Error(`Failed to initialize Lucid: ${lucidError.message}`);
+      }
 
       // Create a wallet adapter for Lucid
       const walletAdapter = {
