@@ -11,6 +11,11 @@ import MainMenu from './components/MainMenu';
 import IssueCertificatePage from './components/IssueCertificatePage';
 import VerifyCertificatePage from './components/VerifyCertificatePage';
 
+// Debug: Check environment variables
+console.log('Environment variables check:');
+console.log('REACT_APP_BLOCKFROST_API_KEY:', process.env.REACT_APP_BLOCKFROST_API_KEY ? 'SET' : 'NOT SET');
+console.log('REACT_APP_CARDANO_NETWORK:', process.env.REACT_APP_CARDANO_NETWORK);
+
 // Suppress React DOM warnings for SVG attributes from MeshSDK
 if (process.env.NODE_ENV === 'development') {
   const originalError = console.error;

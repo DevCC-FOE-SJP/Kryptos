@@ -266,14 +266,18 @@ class BlockchainService {
           throw new Error('Lucid network is undefined. Check network configuration.');
         }
         
-        // Try using the real Blockfrost class directly with a real API key for testing
-        console.log('Creating real Blockfrost provider for testing...');
+        // Try using the real Blockfrost class directly
+        console.log('Creating real Blockfrost provider...');
         
-        // Use environment variable or fallback to a test key
-        const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW'; // This should work
+        // Use environment variable for API key
+        const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+        if (!apiKey) {
+          throw new Error('Blockfrost API key not configured. Please set REACT_APP_BLOCKFROST_API_KEY environment variable.');
+        }
+        
         const blockfrost = new Blockfrost(
           'https://cardano-preprod.blockfrost.io/api/v0',
-          testApiKey
+          apiKey
         );
         
         console.log('Real Blockfrost instance created:', blockfrost);
@@ -420,11 +424,15 @@ class BlockchainService {
           const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
                               serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
           
-          // Use real Blockfrost for address conversion
-          const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+          // Use environment variable for API key
+          const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+          if (!apiKey) {
+            throw new Error('Blockfrost API key not configured');
+          }
+          
           const blockfrost = new Blockfrost(
             'https://cardano-preprod.blockfrost.io/api/v0',
-            testApiKey
+            apiKey
           );
           
           const lucid = await Lucid.new(blockfrost, lucidNetwork);
@@ -441,8 +449,14 @@ class BlockchainService {
       // Try to get transactions for the address using direct Blockfrost API
       let transactions;
       try {
-        // Use direct Blockfrost API call instead of our proxy for verification
-        const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+        // Use environment variable for API key
+        const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+        if (!apiKey) {
+          return {
+            valid: false,
+            message: 'Blockfrost API key not configured. Please check your environment setup.'
+          };
+        }
         
         // Add a small delay to allow for blockchain indexing
         console.log('Waiting 2 seconds for potential blockchain indexing...');
@@ -450,7 +464,7 @@ class BlockchainService {
         
         const response = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/addresses/${searchAddress}/transactions?order=desc&count=100`, {
           headers: {
-            'project_id': testApiKey
+            'project_id': apiKey
           }
         });
         
@@ -483,11 +497,16 @@ class BlockchainService {
 
       // Check each transaction for matching metadata
       for (const tx of transactions) {
-        try {        // Use direct API call for metadata too
-        const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+        try {        // Use environment variable for API key
+        const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+        if (!apiKey) {
+          console.log(`No API key available for transaction ${tx.tx_hash}`);
+          continue;
+        }
+        
         const metadataResponse = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/txs/${tx.tx_hash}/metadata`, {
           headers: {
-            'project_id': testApiKey
+            'project_id': apiKey
           }
         });
         
@@ -727,11 +746,15 @@ class BlockchainService {
       const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
                           serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
       
-      // Use real Blockfrost instead of proxy
-      const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+      // Use environment variable for API key
+      const apiKey = process.env.REACT_APP_BLOCKFROST_API_KEY || '';
+      if (!apiKey) {
+        throw new Error('Blockfrost API key not configured');
+      }
+      
       const blockfrost = new Blockfrost(
         'https://cardano-preprod.blockfrost.io/api/v0',
-        testApiKey
+        apiKey
       );
       
       const lucid = await Lucid.new(blockfrost, lucidNetwork);
