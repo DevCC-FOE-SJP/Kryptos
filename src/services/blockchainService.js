@@ -318,15 +318,19 @@ class BlockchainService {
       // Select wallet
       lucid.selectWallet(walletAdapter);
 
-      // Get wallet address - try to get bech32 format
+      // Get wallet address - convert to proper bech32 format
       let address;
       try {
-        address = await this.getBech32Address(walletApi);
-        console.log('Using bech32 address:', address);
-      } catch (bech32Error) {
-        console.warn('Could not get bech32 address, using change address:', bech32Error);
-        address = await walletApi.getChangeAddress();
-        console.log('Using change address:', address);
+        // Get the address from wallet in bech32 format using Lucid
+        const hexAddress = await walletApi.getChangeAddress();
+        console.log('Got hex address from wallet:', hexAddress);
+        
+        // Use Lucid to get proper bech32 address after selecting wallet
+        address = await lucid.wallet.address();
+        console.log('Using Lucid wallet address (bech32):', address);
+      } catch (addressError) {
+        console.error('Could not get bech32 address:', addressError);
+        throw new Error('Failed to get wallet address in proper format');
       }
 
       // Validate address format
@@ -346,21 +350,18 @@ class BlockchainService {
 
       // Create simplified metadata with ASCII-only characters to avoid encoding issues
       const metadata = {
-        674: {
-          'hash': fileHash,
-          'file': fileName.replace(/[^\x00-\x7F]/g, ""), // Remove non-ASCII characters
-          'date': new Date().toISOString().split('T')[0], // Just date, no time
-          'app': 'CertiFy'
-        }
+        hash: fileHash.substring(0, 32), // Truncate hash to avoid length issues
+        file: fileName.replace(/[^\w\s.-]/g, "").substring(0, 20), // Remove special chars and truncate
+        app: 'CertiFy'
       };
 
       console.log('Building transaction with simplified metadata:', metadata);
 
-      // Build transaction with Lucid - simplified version
+      // Build very simple transaction with Lucid - no metadata first to test
+      console.log('Building simple transaction without metadata for testing...');
       const tx = await lucid
         .newTx()
         .payToAddress(address, { lovelace: BigInt(1500000) }) // Send 1.5 ADA to self
-        .attachMetadata(674, metadata[674])
         .complete();
 
       console.log('Transaction built, signing...');
