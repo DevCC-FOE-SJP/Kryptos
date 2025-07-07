@@ -408,24 +408,28 @@ class BlockchainService {
       console.log('Verifying certificate with hash:', fileHash);
       console.log('Searching address:', walletAddress);
 
-      // Check if address is hex format and try to convert it
+      // Check if address is hex format and try to convert it using real Blockfrost
       let searchAddress = walletAddress;
       if (walletAddress.length > 50 && !walletAddress.startsWith('addr')) {
         console.log('Address appears to be in hex format, attempting conversion...');
         
-        // Initialize Lucid to use address utilities
+        // Initialize Lucid with real Blockfrost to use address utilities
         try {
           const serviceConfig = this.getConfig();
           const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
                               serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
           
-          const lucid = await Lucid.new(
-            new this.ProxyBlockfrost(serviceConfig.baseUrl),
-            lucidNetwork
+          // Use real Blockfrost for address conversion
+          const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+          const blockfrost = new Blockfrost(
+            'https://cardano-preprod.blockfrost.io/api/v0',
+            testApiKey
           );
           
+          const lucid = await Lucid.new(blockfrost, lucidNetwork);
+          
           // Try to convert hex to bech32 using Lucid
-          // This might not work directly, so we'll fall back to using the hex address
+          // For now, we'll use the hex address directly since conversion is complex
           searchAddress = walletAddress;
         } catch (conversionError) {
           console.warn('Could not convert address format:', conversionError);
@@ -433,13 +437,35 @@ class BlockchainService {
         }
       }
 
-      // Get transactions for the address
-      const transactions = await this.makeBlockfrostRequest(
-        `/addresses/${searchAddress}/transactions`,
-        'get',
-        null,
-        { order: 'desc', count: 50 }
-      );
+      // Try to get transactions for the address using direct Blockfrost API
+      let transactions;
+      try {
+        // Use direct Blockfrost API call instead of our proxy for verification
+        const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+        const response = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/addresses/${searchAddress}/transactions?order=desc&count=50`, {
+          headers: {
+            'project_id': testApiKey
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            return {
+              valid: false,
+              message: 'Address not found on the blockchain. This could mean the address format is incorrect or no transactions have been made from this address.'
+            };
+          }
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        
+        transactions = await response.json();
+      } catch (apiError) {
+        console.error('Direct API call failed:', apiError);
+        return {
+          valid: false,
+          message: `Failed to query blockchain: ${apiError.message}. Please check the address format.`
+        };
+      }
 
       if (transactions.length === 0) {
         return {
@@ -451,24 +477,42 @@ class BlockchainService {
       // Check each transaction for matching metadata
       for (const tx of transactions) {
         try {
-          const metadata = await this.makeBlockfrostRequest(`/txs/${tx.tx_hash}/metadata`);
-          console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
+          // Use direct API call for metadata too
+          const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+          const metadataResponse = await fetch(`https://cardano-preprod.blockfrost.io/api/v0/txs/${tx.tx_hash}/metadata`, {
+            headers: {
+              'project_id': testApiKey
+            }
+          });
           
-          // Look for certificate metadata in label 674
-          if (metadata && metadata['674'] && metadata['674'].certificate_hash === fileHash) {
-            return {
-              valid: true,
-              transactionHash: tx.tx_hash,
-              issuedAt: metadata['674'].issued_at,
-              fileName: metadata['674'].file_name,
-              issuer: metadata['674'].issuer,
-              blockTime: tx.block_time,
-              blockHeight: tx.block_height,
-              network: metadata['674'].network || this.getConfig().network
-            };
+          let metadata = null;
+          if (metadataResponse.ok) {
+            metadata = await metadataResponse.json();
+            console.log(`Checking transaction ${tx.tx_hash} metadata:`, metadata);
+            
+            // Look for certificate metadata in label 674
+            if (metadata && Array.isArray(metadata)) {
+              const certMetadata = metadata.find(m => m.label === '674');
+              if (certMetadata && certMetadata.json_metadata) {
+                // Check if the hash matches in any part of the metadata
+                const metadataStr = JSON.stringify(certMetadata.json_metadata);
+                if (metadataStr.includes(fileHash)) {
+                  return {
+                    valid: true,
+                    transactionHash: tx.tx_hash,
+                    metadata: certMetadata.json_metadata,
+                    blockTime: tx.block_time,
+                    blockHeight: tx.block_height,
+                    network: this.getConfig().network
+                  };
+                }
+              }
+            }
+          } else {
+            console.log(`No metadata found for transaction ${tx.tx_hash}`);
           }
         } catch (metadataError) {
-          console.log(`No metadata found for transaction ${tx.tx_hash}`);
+          console.log(`Error checking metadata for transaction ${tx.tx_hash}:`, metadataError);
           continue;
         }
       }
@@ -642,15 +686,19 @@ class BlockchainService {
    */
   async getBech32Address(walletApi) {
     try {
-      // Initialize Lucid
+      // Initialize Lucid with real Blockfrost
       const serviceConfig = this.getConfig();
       const lucidNetwork = serviceConfig.network === 'mainnet' ? 'Mainnet' : 
                           serviceConfig.network === 'preview' ? 'Preview' : 'Preprod';
       
-      const lucid = await Lucid.new(
-        new this.ProxyBlockfrost(serviceConfig.baseUrl),
-        lucidNetwork
+      // Use real Blockfrost instead of proxy
+      const testApiKey = 'preprod826czomyYkQHX5hzSQd7tm7ZBxK0eMeW';
+      const blockfrost = new Blockfrost(
+        'https://cardano-preprod.blockfrost.io/api/v0',
+        testApiKey
       );
+      
+      const lucid = await Lucid.new(blockfrost, lucidNetwork);
 
       // Create wallet adapter
       const walletAdapter = {
