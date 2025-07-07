@@ -121,11 +121,12 @@ const Home = ({ onGetStarted, onTutorial }) => {
       <header className="relative z-10 bg-white bg-opacity-10 backdrop-blur-md border-b border-white border-opacity-20">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-xl font-bold">C</span>
-              </div>
-              <h1 className="text-2xl font-bold text-white">CertiFy</h1>
+            <div className="flex items-center justify-center">
+              <img 
+                src="https://i.postimg.cc/CL1bSS6P/Certi-Fy-logo-white.png" 
+                alt="CertiFy Logo" 
+                className="h-12 w-auto object-contain"
+              />
             </div>
           </div>
         </div>
@@ -135,12 +136,18 @@ const Home = ({ onGetStarted, onTutorial }) => {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-32">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            Welcome to
-            <span className="block bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent">
-              CertiFy
-            </span>
-          </h1>
+          <div className="mb-6">
+            <h1 className="text-6xl md:text-7xl font-bold text-white mb-4 leading-tight">
+              Welcome to
+            </h1>
+            <div className="flex justify-center">
+              <img 
+                src="https://i.postimg.cc/2540hCYd/Certi-Fy-text-white.png" 
+                alt="CertiFy" 
+                className="h-16 md:h-20 w-auto object-contain"
+              />
+            </div>
+          </div>
           <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
             The future of document verification is here. Secure, transparent, and immutable certificate management on the blockchain.
           </p>
@@ -229,7 +236,17 @@ const Home = ({ onGetStarted, onTutorial }) => {
       {/* Features Grid */}
       <section className="relative z-10 py-20 px-4 sm:px-6 lg:px-8 bg-white bg-opacity-5 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-white text-center mb-16">Why Choose CertiFy?</h2>
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center space-x-4">
+              <span className="text-4xl font-bold text-white">Why Choose</span>
+              <img 
+                src="https://i.postimg.cc/2540hCYd/Certi-Fy-text-white.png" 
+                alt="CertiFy" 
+                className="h-10 w-auto object-contain transform translate-y-1.5"
+              />
+              <span className="text-4xl font-bold text-white">?</span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {

@@ -328,12 +328,13 @@ const Tutorial = ({ onComplete, onHome }) => {
           <div className="flex justify-between items-center">
             <button
               onClick={() => onHome ? onHome() : onComplete()}
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+              className="flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-white to-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-xl font-bold">C</span>
-              </div>
-              <h1 className="text-2xl font-bold text-white">CertiFy</h1>
+              <img 
+                src="https://i.postimg.cc/CL1bSS6P/Certi-Fy-logo-white.png" 
+                alt="CertiFy Logo" 
+                className="h-12 w-auto object-contain"
+              />
             </button>
             <div className="flex items-center space-x-4">
               {/* Space for future header actions */}
